@@ -658,7 +658,10 @@ class StackPanel(_Panel):
             num = self.c_num[t]
             serve_col = None  # set once, below: never hide-then-show (the display refreshes in between)
             # the baseline is the end of the court away from the net: the top for A, the bottom for B
-            base_y, net_y = (cy + 5, cy + 14) if t == 0 else (cy + 15, cy + 6)
+            # Text is 6 rows tall, drawn from 4 above its anchor row to 1 below it; both ends of both
+            # courts leave 1 clear row inside the line. The 8-row ball is centred on the same row.
+            base_y, net_y = (cy + 6, cy + 16) if t == 0 else (cy + 16, cy + 6)
+            ball_y = cy + 10 if t == 0 else cy + 2
             for side in ("R", "L"):
                 # over:   birds-eye, A faces down and B faces up, so A's right court is on the board's left
                 # mirror: the same, flipped left-right
