@@ -48,6 +48,11 @@ def _scale(color, pct):
     return (r * pct // 100) << 16 | (g * pct // 100) << 8 | (b * pct // 100)
 
 
+def short_name(name):
+    """Drop a leading "Team " (the default names are "Team A" / "Team B")."""
+    return name[5:] if name[:5].lower() == "team " and len(name) > 5 else name
+
+
 def fmt_secs(s):
     s = int(max(0, s))
     if s >= 6000:
@@ -466,7 +471,7 @@ class CompactPanel(_Panel):
             self._build_multi(n)
         col = self.multi_col
         for i in range(n):
-            self._text(self.m_names[i], v["names"][i].upper()[:max(1, (col - 2) // 5)])
+            self._text(self.m_names[i], short_name(v["names"][i]).upper()[:max(1, (col - 2) // 5)])
             text = v["big"][i]
             fits_big = len(text) * 15 <= col - 2
             off = v["over"] and v["winner"] == i and not blink_on
@@ -571,19 +576,20 @@ class StackPanel(_Panel):
         self._color(lbl, SERVER_TEXT if highlight else PLAYER)
 
     # ---------------------------------------------------------------- court diagram
-    # 64x64, top to bottom:  A's name row (0-7) | A's court (8-24) | the call X-Y-Z, at the net (25-38)
-    #                        | B's court (39-55) | B's name row (56-63)
-    COURT_Y = (8, 39)
-    HEAD_Y = (0, 56)
-    COURT_H = 17
-    CALL_Y = 25
+    # One 64x64 canvas (the two panels act as a single screen), top to bottom:
+    #   A's court (0-20) | games-won dots and idle timer (22-28) | the call X-Y-Z (29-42) | B's court (43-63)
+    # Teams are told apart by colour, so there are no team-name rows.
+    COURT_Y = (0, 43)
+    COURT_H = 21
+    INFO_Y = 22
+    CALL_Y = 29
+    DOT_XS = ((1, 4, 7), (61, 58, 55))  # A's games-won dots on the left, B's on the right
 
     def _build_court(self):
         g = displayio.Group()
         W = self.W
-        self.c_names = [self._label(self.tiny, TEAM_COLORS[t], (0.0, 0.0), (1, self.HEAD_Y[t]), g) for t in (0, 1)]
-        self.c_timer = self._label(self.tiny, TIMER, (1.0, 0.0), (W, 0), g)  # top row, right
-        self.c_dots = [[self._rect(x, hy + 3, 2, 2, g) for x in (28, 31, 34)] for hy in self.HEAD_Y]
+        self.c_timer = self._label(self.tiny, TIMER, (0.5, 0.0), (W // 2, self.INFO_Y), g)
+        self.c_dots = [[self._rect(x, self.INFO_Y + 2, 2, 2, g) for x in xs] for xs in self.DOT_XS]
         # the call is four labels so the scores can wear their team's colour: X, "-", Y, "-Z"
         self.c_call = [self._label(self.mid, 0xFFFFFF, (0.0, 0.0), (0, self.CALL_Y), g) for _ in range(4)]
         self.c_ball = []  # the sport's ball, in the server's court (one tile per team)
@@ -595,8 +601,8 @@ class StackPanel(_Panel):
             frame, pal = self._outline(0, cy, W, self.COURT_H, g)  # the team's court, in the team's colour
             frame.hidden = False
             self.c_frames.append((frame, pal))
-            self.c_slots.append([self._label(self.tiny, PLAYER, (0.5, 0.5), (16 + 32 * c, cy + 8), g) for c in (0, 1)])
-            self.c_num.append(self._label(self.tiny, SERVER_NUM, (0.5, 0.5), (16, cy + 8), g))
+            self.c_slots.append([self._label(self.tiny, PLAYER, (0.5, 0.5), (16 + 32 * c, cy + 10), g) for c in (0, 1)])
+            self.c_num.append(self._label(self.tiny, SERVER_NUM, (0.5, 0.5), (16, cy + 10), g))
         self.court_group = g
 
     def draw_court(self, v, now, second, blink_on, key):
@@ -616,7 +622,6 @@ class StackPanel(_Panel):
                 self.court_group.append(tile)
                 self.c_ball.append(tile)
             self.c_ball_key = (key, self.pct)
-        self._place_icon(self.court_group, key, self.W - 9, self.HEAD_Y[1])  # bottom row, right
         server = v["server"]
         srv_side = None  # which court the server is standing in (R or L)
         if server is not None:
@@ -646,14 +651,12 @@ class StackPanel(_Panel):
             x += 7 * len(text)
 
         for t, cy in enumerate(self.COURT_Y):
-            self._text(self.c_names[t], v["names"][t][:self.NAME_CHARS].upper())
-            self._color(self.c_names[t], shade(t))
             self._fill(self.c_frames[t][1], TEAM_COLORS[t])
             ball = self.c_ball[t]
             num = self.c_num[t]
             serve_col = None  # set once, below: never hide-then-show (the display refreshes in between)
             # the baseline is the end of the court away from the net: the top for A, the bottom for B
-            base_y, net_y = (cy + 5, cy + 11) if t == 0 else (cy + 11, cy + 5)
+            base_y, net_y = (cy + 5, cy + 14) if t == 0 else (cy + 15, cy + 6)
             for side in ("R", "L"):
                 # over:   birds-eye, A faces down and B faces up, so A's right court is on the board's left
                 # mirror: the same, flipped left-right
@@ -668,7 +671,7 @@ class StackPanel(_Panel):
                 active = idx is not None and server is not None and side == srv_side
                 self._text(lbl, players[idx] if idx is not None and idx < len(players) else " ")
                 self._color(lbl, SERVER_TEXT if active else PLAYER)
-                pos = (16 + 32 * col, base_y if active else (net_y if server is not None else cy + 8))
+                pos = (16 + 32 * col, base_y if active else (net_y if server is not None else cy + 10))
                 if lbl.anchored_position != pos:
                     lbl.anchored_position = pos
                 if active and t == server[0]:
@@ -709,7 +712,7 @@ class StackPanel(_Panel):
             oy = self.OY[t]
             rows = (oy + self.ROWS_Y[0], oy + self.ROWS_Y[1])
             single = oy + self.SINGLE_Y
-            self._text(self.names[t], v["names"][t][:self.NAME_CHARS].upper())
+            self._text(self.names[t], short_name(v["names"][t])[:self.NAME_CHARS].upper())
             self._color(self.names[t], 0x000000 if (v["over"] and v["winner"] == t and not blink_on) else TEAM_COLORS[t])
             self._text(self.scores[t], v["big"][t])
             self._text(self.mids[t], v["mid"][t] if tennis_like else " ")
@@ -763,7 +766,7 @@ class StackPanel(_Panel):
             self._build_timed()
         clock = v["clock"]
         for t in (0, 1):
-            self._text(self.t_names[t], v["names"][t][:self.NAME_CHARS].upper())
+            self._text(self.t_names[t], short_name(v["names"][t])[:self.NAME_CHARS].upper())
         if v["over"]:
             self._text(self.t_clock, "FINAL")
             self._color(self.t_clock, 0xFFFFFF)
@@ -831,7 +834,7 @@ class StackPanel(_Panel):
         if self.multi_group is None or self.multi_n != n:
             self._build_multi(n)
         for i, (x, y, w, h) in enumerate(self.multi_cells):
-            self._text(self.m_names[i], v["names"][i].upper()[:max(1, (w - 2) // 5)])
+            self._text(self.m_names[i], short_name(v["names"][i]).upper()[:max(1, (w - 2) // 5)])
             text = v["big"][i]
             fits_big = self.m_big[i] is not None and len(text) * 15 <= w - 2
             off = v["over"] and v["winner"] == i and not blink_on
