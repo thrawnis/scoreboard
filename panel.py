@@ -126,6 +126,7 @@ class _Panel:
         self.version = None
         self.last_second = None
         self.celebrated = None
+        self._colors_seen = False  # the "colors" setting last applied (False: none yet)
         self.test_until = 0  # a test pattern (see test_fill) holds the display until then
         self.test_group = None
         self.score_group = displayio.Group()
