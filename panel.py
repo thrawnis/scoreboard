@@ -606,6 +606,16 @@ class StackPanel(_Panel):
         if self.court_group is None:
             self._build_court()
         self._place_icon(self.court_group, key, self.W - 9, self.OY[1] + 1)  # bottom panel, top right
+        if self.c_ball_key != (key, self.pct):  # one ball tile per team, rebuilt for a new sport or brightness
+            for tile in self.c_ball:
+                self.court_group.remove(tile)
+            self.c_ball = []
+            for t in (0, 1):
+                tile = icons.make(key, self.pct)
+                tile.hidden = True
+                self.court_group.append(tile)
+                self.c_ball.append(tile)
+            self.c_ball_key = (key, self.pct)
         server = v["server"]
         srv_side = None  # which court the server is standing in (R or L)
         if server is not None:
