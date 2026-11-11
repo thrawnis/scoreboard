@@ -929,6 +929,8 @@ async function loadSettings() {
     $("#bright").value = S.brightness; $("#bright-v").textContent = S.brightness + "%";
     $$("#panels button").forEach(b => b.classList.toggle("on", +b.dataset.v === (S.panels || 2)));
     $("#anims").checked = S.animations !== false;
+    $("#flip").checked = S.serpentine !== false;
+    $("#flip-row").hidden = S.panels === 1;
   }
   const base = location.origin;
   const rows = [["Point for Team A", "/api/w/a"], ["Point for Team B", "/api/w/b"], ["Team A +2 (timed games)", "/api/w/a/2"], ["Start / stop clock", "/api/w/clock"], ["Undo", "/api/w/undo"], ["Show score", "/api/w/score"]];
