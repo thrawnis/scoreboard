@@ -585,7 +585,7 @@ class StackPanel(_Panel):
     # timer at the very bottom; the courts meet in the middle at the white net line.
     COURT_Y = (0, 45)
     COURT_HS = (19, 19)
-    INFO_Y = 18
+    INFO_Y = 21
     CALL_Y = 31
     DOT_XS = ((1, 4, 7), (61, 58, 55))  # A's games-won dots on the left, B's on the right
 
