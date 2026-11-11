@@ -642,7 +642,7 @@ class StackPanel(_Panel):
                 serving = active and t == server[0]
                 receiving = active and not serving
                 self._text(lbl, players[idx] if idx is not None and idx < len(players) else " ")
-                self._color(lbl, 0x000000 if serving else (SERVER_TEXT if receiving else PLAYER))
+                self._color(lbl, SERVER_TEXT if active else PLAYER)
                 pos = (11 + 22 * col, base_y if active else (net_y if server is not None else cy + 10))
                 if lbl.anchored_position != pos:
                     lbl.anchored_position = pos
