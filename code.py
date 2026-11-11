@@ -207,6 +207,7 @@ except Exception as err:  # keep the scoreboard usable over serial without Wi-Fi
 HELP = """Commands:
   status               score and network
   a | b                team A / B won the rally
+  point | loss         the remote's team / the other team won the rally
   u                    undo
   api METHOD PATH [JSON]   call the web API, e.g. api GET /api/state
   snap                 dump the frame buffer (RGB565 hex rows)
