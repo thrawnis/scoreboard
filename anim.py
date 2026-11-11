@@ -466,7 +466,7 @@ class Animator:
 
     def _step_burst(self, tn):
         s = self.shapes
-        cx, cy = self.cx, H // 2
+        cx, cy = self.cx, self.cy
         r = 4 + 28 * min(1.0, tn / 0.5)
         fade = tn > 0.8
         for i, ray in enumerate(s["rays"]):
