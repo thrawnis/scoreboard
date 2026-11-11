@@ -232,6 +232,7 @@ class _Panel:
 
     def update(self, app, net=None):
         """Redraw from the app. Cheap when nothing changed; call every loop."""
+        self.court_mode = app.meta.get("court", "over")
         pct = app.meta.get("brightness", 100)
         if pct != self.pct:
             self.pct = pct
