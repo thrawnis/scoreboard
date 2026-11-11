@@ -1,4 +1,4 @@
-# macOS / desktop junk CircuitPython drives collect
+# Junk files that macOS / Linux desktops leave on the CIRCUITPY drive
 .fseventsd/
 .Trash*/
 .Trashes
