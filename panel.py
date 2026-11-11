@@ -496,6 +496,7 @@ class StackPanel(_Panel):
         self.stage = displayio.Group()
         self._shown = None
         self._base = None  # last scoreboard layout shown (what an animation plays over)
+        self.court_group = None  # court diagram (pickleball, badminton), built on first use
         display.root_group = self.stage
         # centre the full-screen layouts on the taller board
         self.msg_top.anchored_position = (32, 14)
