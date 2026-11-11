@@ -238,8 +238,25 @@ class _Panel:
             return "TB" if v["status"] == "TIEBREAK" else v["status"][:5], ALERT
         return fmt_secs(now - v["last_t"]), TIMER
 
+    def test_fill(self, color, seconds):
+        """Troubleshooting: fill every pixel with one colour (at the current brightness) for a while,
+        e.g. to compare the brightness of the two screens."""
+        if self.test_group is None:
+            self.test_pal = displayio.Palette(1)
+            self.test_group = displayio.Group()
+            self.test_group.append(vectorio.Rectangle(pixel_shader=self.test_pal, width=self.display.width,
+                                                      height=self.display.height, x=0, y=0))
+        self.test_pal[0] = _scale(color, self.pct)
+        self.test_until = time.monotonic() + seconds
+        self._show(self.test_group)
+
     def update(self, app, net=None):
         """Redraw from the app. Cheap when nothing changed; call every loop."""
+        if time.monotonic() < self.test_until:
+            return
+        if self.test_until:  # test pattern over: redraw the scoreboard
+            self.test_until = 0
+            self.version = None
         self.court_mode = app.meta.get("court", "over")
         pct = app.meta.get("brightness", 100)
         if pct != self.pct:
