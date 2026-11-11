@@ -550,8 +550,14 @@ class App:
                     self._save_meta()
                     self._changed()
                 if body.get("panels") in (1, 2) and body["panels"] != self.meta.get("panels", 2):
-                    # The matrix width is fixed at start-up, so restart once the reply is sent.
+                    # The matrix size is fixed at start-up, so restart once the reply is sent.
                     self.meta["panels"] = body["panels"]
+                    self._save_meta()
+                    self._changed()
+                    self.reboot_due = time.monotonic() + 1.5
+                if "serpentine" in body and bool(body["serpentine"]) != self.meta.get("serpentine", True):
+                    # Is the bottom panel of the stacked board mounted upside-down? Also applied at start-up.
+                    self.meta["serpentine"] = bool(body["serpentine"])
                     self._save_meta()
                     self._changed()
                     self.reboot_due = time.monotonic() + 1.5
