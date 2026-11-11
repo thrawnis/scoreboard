@@ -173,10 +173,10 @@ class _Panel:
         tile.x, tile.y = x, y
         tile.hidden = not show
 
-    def _outline(self, x, y, w, h):
+    def _outline(self, x, y, w, h, group=None):
         pal = displayio.Palette(2)
         pal[1] = 0x000000
-        return _OutlineBox(self.score_group, pal, x, y, w, h), pal
+        return _OutlineBox(group if group is not None else self.score_group, pal, x, y, w, h), pal
 
     def _text(self, lbl, text):
         text = text or " "
