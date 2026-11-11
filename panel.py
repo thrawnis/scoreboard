@@ -740,7 +740,7 @@ class StackPanel(_Panel):
                         self._box(t, r, rows[r], " ", False)
                         continue
                     y = rows[r] if v["doubles"] else single
-                    self._box(t, r, y, players[r], is_serving and server[1] == r)
+                    self._box(t, r, y, players[r][:4], is_serving and server[1] == r)
 
             num = self.nums[t]
             if is_serving and server[2]:
