@@ -56,7 +56,7 @@ def _meta():
 # 1 or 2 chained 64x32 panels; chosen in the web app's Settings (or serial `panels N`).
 # Two panels are stacked into a 64x64 board (team A on the top panel, team B below).
 _m = _meta()
-STACK = _m.get("panels") != 1
+STACK = True  # single-screen mode is disabled for now; to bring it back: _m.get("panels") != 1
 # Serpentine: the bottom panel is mounted upside-down (short cable from the top panel's
 # output to its input). Turn off if both panels are upright (Settings, or serial `flip`).
 SERPENTINE = _m.get("serpentine", True)
