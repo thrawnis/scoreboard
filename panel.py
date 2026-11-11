@@ -592,8 +592,10 @@ class StackPanel(_Panel):
     def _build_court(self):
         g = displayio.Group()
         W = self.W
-        self.c_timer = self._label(self.mid, TIMER, (0.5, 0.0), (W // 2, self.INFO_Y), g)  # same font as the score
-        self.c_dots = [[self._rect(x, self.INFO_Y + 6, 2, 2, g) for x in xs] for xs in self.DOT_XS]
+        # 6x10, the next size down from the score's 7x14 bold; its 7-row digits start 1 row below the
+        # label's top, so INFO_Y puts them in the middle of the free rows 19-31
+        self.c_timer = self._label(self.small, TIMER, (0.5, 0.0), (W // 2, self.INFO_Y), g)
+        self.c_dots = [[self._rect(x, self.INFO_Y + 3, 2, 2, g) for x in xs] for xs in self.DOT_XS]
         # the call is four labels so the scores can wear their team's colour: X, "-", Y, "-Z"
         self.c_call = [self._label(self.mid, 0xFFFFFF, (0.0, 0.0), (0, self.CALL_Y), g) for _ in range(4)]
         self.c_ball = []  # the sport's ball, in the server's court (one tile per team)
