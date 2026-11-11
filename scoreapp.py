@@ -568,6 +568,10 @@ class App:
                     self._save_meta()
                     self._changed()
                     self.reboot_due = time.monotonic() + 1.5
+                if body.get("remote_team") in (0, 1, "a", "b", "A", "B"):
+                    self.meta["remote_team"] = 1 if body["remote_team"] in (1, "b", "B") else 0
+                    self._save_meta()
+                    self._changed()
                 if body.get("court") in ("over", "mirror", "same"):
                     self.meta["court"] = body["court"]  # court diagram orientation; applies at once
                     self._save_meta()
