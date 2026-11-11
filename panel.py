@@ -40,7 +40,7 @@ SERVER_NUM = 0xFFFFFF
 GAMES = 0xFFFFFF
 DOT_OFF = 0x282828
 ALERT = 0xFFC800
-BOX_W, BOX_H = 22, 9  # fits a 4-character player name in the 5x7 font
+BOX_W, BOX_H = 22, 9  # fits a 4-character player name in the 5x7 font (the court view shows all 5)
 
 
 def _scale(color, pct):
