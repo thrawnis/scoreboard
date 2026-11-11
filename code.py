@@ -211,6 +211,7 @@ HELP = """Commands:
   api METHOD PATH [JSON]   call the web API, e.g. api GET /api/state
   snap                 dump the frame buffer (RGB565 hex rows)
   panels 1|2           one 64x32 panel, or two stacked into 64x64 (restarts the board)
+  fill COLOR [secs]    solid colour on both screens (white|red|green|blue|yellow|RRGGBB), default 15 s
   flip                 toggle the bottom panel's mounting: upside-down / upright (restarts)
   devmode             restart with CIRCUITPY writable over USB (history not saved)
   reboot               restart"""
