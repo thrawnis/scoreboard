@@ -619,7 +619,7 @@ class StackPanel(_Panel):
             num = self.c_num[t]
             self._text(num, " ")
             for side in ("R", "L"):
-                col = (0 if side == "R" else 1) if t else (1 if side == "R" else 0)
+                col = (1 if side == "R" else 0) if t else (0 if side == "R" else 1)
                 idx = v["courts"][t].get(side)
                 players = v["players"][t]
                 lbl = self.c_slots[t][col]
