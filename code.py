@@ -222,6 +222,8 @@ def serial_command(line):
     if not parts:
         return None
     cmd, arg = parts[0].lower(), (parts[1] if len(parts) > 1 else "")
+    if cmd in ("point", "loss"):  # what a one-/two-button remote sends (see the remote team in Settings)
+        return app.handle("POST", "/api/w/" + cmd, {}, "")[2]
     if cmd in ("a", "b", "u"):
         path = "/api/w/undo" if cmd == "u" else "/api/w/" + cmd
         return app.handle("POST", path, {}, "")[2]
