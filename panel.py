@@ -621,7 +621,6 @@ class StackPanel(_Panel):
         self.c_ball_key = None
         self.c_frames = []
         self.c_slots = []  # [team][column] player name; column 0 = left on the board
-        self.c_num = []  # server number (1 or 2), beside the ball
         for t, cy in enumerate(self.COURT_Y):
             frame, pal = self._outline(0, cy, W, self.COURT_HS[t], g)  # the team's court, in the team's colour
             frame.hidden = False
