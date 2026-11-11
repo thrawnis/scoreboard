@@ -676,7 +676,7 @@ class StackPanel(_Panel):
                 active = idx is not None and server is not None and side == srv_side
                 self._text(lbl, players[idx] if idx is not None and idx < len(players) else " ")
                 self._color(lbl, SERVER_TEXT if active else PLAYER)
-                pos = (16 + 32 * col, base_y if active else (net_y if server is not None else cy + 10))
+                pos = (16 + 32 * col, base_y if active else (net_y if server is not None else cy + 11))
                 if lbl.anchored_position != pos:
                     lbl.anchored_position = pos
                 if active and t == server[0]:
