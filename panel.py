@@ -888,6 +888,7 @@ class StackPanel(_Panel):
             self._build_multi(n)
         for i, (x, y, w, h) in enumerate(self.multi_cells):
             self._text(self.m_names[i], short_name(v["names"][i]).upper()[:max(1, (w - 2) // 5)])
+            self._color(self.m_names[i], TEAM_COLORS[i])
             text = v["big"][i]
             fits_big = self.m_big[i] is not None and len(text) * 15 <= w - 2
             off = v["over"] and v["winner"] == i and not blink_on
