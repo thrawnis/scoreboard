@@ -100,8 +100,8 @@ try:
 except AttributeError:
     pass
 
-panel = make_panel(display, WIDTH)
-panel.message("STARTING" if WIDTH > 64 else "START", small="WI-FI...", top_color=0xFFFFFF)
+panel = make_panel(display, STACK)
+panel.message("STARTING" if STACK else "START", small="WI-FI...", top_color=0xFFFFFF)
 
 # ---------------------------------------------------------------- storage
 
