@@ -667,6 +667,8 @@ class StackPanel(_Panel):
                 lbl.anchored_position = pos
             x += 7 * len(text)
 
+        for pal in self.c_net:
+            self._fill(pal, NET)
         for t, cy in enumerate(self.COURT_Y):
             self._fill(self.c_frames[t][1], TEAM_COLORS[t])
             self._fill(self.c_div[t], TEAM_COLORS[t])
