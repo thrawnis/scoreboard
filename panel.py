@@ -384,7 +384,7 @@ class CompactPanel(_Panel):
             self._fill(pal, SERVER_BOX)
             ball.hidden = True
             self.server.anchored_position = (self.BOX_X[s] + BOX_W // 2, self.BOX_Y + BOX_H // 2 + 1)
-            self._text(self.server, v["players"][s][server[1]])
+            self._text(self.server, v["players"][s][server[1]][:4])  # the box fits 4 characters
             self._color(self.server, SERVER_TEXT)
             self.num.anchored_position = (self.NUM_X[s], self.BOX_Y + BOX_H // 2 + 1)
             self._text(self.num, str(server[2]) if server[2] else " ")
