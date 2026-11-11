@@ -551,7 +551,9 @@ class App:
                     self.meta["animations"] = bool(body["animations"])
                     self._save_meta()
                     self._changed()
-                if body.get("panels") in (1, 2) and body["panels"] != self.meta.get("panels", 2):
+                if body.get("panels") == 1:
+                    raise ApiError(400, "single-screen mode is disabled for now; the board runs as two stacked screens")
+                if body.get("panels") == 2 and body["panels"] != self.meta.get("panels", 2):
                     # The matrix size is fixed at start-up, so restart once the reply is sent.
                     self.meta["panels"] = body["panels"]
                     self._save_meta()
