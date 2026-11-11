@@ -629,14 +629,20 @@ class StackPanel(_Panel):
                 players = v["players"][t]
                 lbl = self.c_slots[t][col]
                 y = oy + self.COURT_Y
-                serving = idx is not None and server is not None and server[0] == t and server[1] == idx
+                # the server and the player receiving the serve (the diagonal court) stand at the
+                # baselines; everyone else is up at the net
+                active = idx is not None and server is not None and side == srv_side
+                serving = active and t == server[0]
+                receiving = active and not serving
                 self._text(lbl, players[idx] if idx is not None and idx < len(players) else " ")
-                self._color(lbl, 0x000000 if serving else PLAYER)  # black on the green block
-                pos = (11 + 22 * col, y + (14 if serving and server[2] else 10))
+                self._color(lbl, 0x000000 if serving else (SERVER_TEXT if receiving else PLAYER))
+                pos = (11 + 22 * col, base_y if active else (net_y if server is not None else cy + 10))
                 if lbl.anchored_position != pos:
                     lbl.anchored_position = pos
                 if serving:
                     serve_col = col
+                elif receiving:
+                    recv_col = col
             if serve_col is None:
                 if not hl.hidden:
                     hl.hidden = True
@@ -647,11 +653,20 @@ class StackPanel(_Panel):
                 self._fill(hl_pal, SERVER_BOX)
                 if hl.hidden:
                     hl.hidden = False
-                self._color(num, 0x000000)  # black on the green block
-                pos = (11 + 22 * serve_col, oy + self.COURT_Y + 5)
+                self._color(num, 0x000000)  # black on the green block, at the net end of it
+                pos = (11 + 22 * serve_col, net_y)
                 if num.anchored_position != pos:
                     num.anchored_position = pos
                 self._text(num, str(server[2]) if server[2] else " ")
+            if recv_col is None:
+                if not rx.hidden:
+                    rx.hidden = True
+            else:
+                if rx.x != 22 * recv_col:
+                    rx.x = 22 * recv_col
+                self._fill(rx_pal, SERVER_BOX)
+                if rx.hidden:
+                    rx.hidden = False
         for t in (0, 1):
             for i, (rect, pal) in enumerate(self.c_dots[t]):
                 rect.hidden = i >= v["need"]
