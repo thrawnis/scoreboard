@@ -605,6 +605,11 @@ class StackPanel(_Panel):
             self._build_court()
         self._place_icon(self.court_group, key, self.W - 9, self.OY[1] + 1)  # bottom panel, top right
         server = v["server"]
+        srv_side = None  # which court the server is standing in (R or L)
+        if server is not None:
+            for sd, ix in v["courts"][server[0]].items():
+                if ix == server[1]:
+                    srv_side = sd
         for t, oy in enumerate(self.OY):
             self._text(self.c_names[t], v["names"][t][:self.NAME_CHARS].upper())
             self._color(self.c_names[t], 0x000000 if (v["over"] and v["winner"] == t and not blink_on) else TEAM_COLORS[t])
