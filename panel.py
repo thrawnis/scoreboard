@@ -682,8 +682,8 @@ class StackPanel(_Panel):
             # The baseline is the end of the court away from the net: the bottom for A, the top for B.
             # Text is 6 rows tall, drawn from 4 above its anchor row to 1 below it; both ends of both
             # courts leave 1 clear row inside the line. The 8-row ball is centred on the same row.
-            base_y, net_y = (cy + 16, cy + 6) if t == 0 else (cy + 6, cy + 16)
-            ball_y = cy + 2 if t == 0 else cy + 10
+            base_y, net_y = (cy + 15, cy + 6) if t == 0 else (cy + 6, cy + 15)
+            ball_y = cy + 2 if t == 0 else cy + 9
             for side in ("R", "L"):
                 # over:   birds-eye. As displayed, B (top screen) faces down and A (bottom screen) faces up,
                 #         so B's right-hand court is on the viewer's left and A's on the viewer's right
