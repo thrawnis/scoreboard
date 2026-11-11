@@ -778,7 +778,7 @@ $("#dlg-match").addEventListener("input", e => {
 });
 
 function playerError(name) {
-  if (name.length < 2 || name.length > 4) return "Player names must be 2–4 characters.";
+  if (name.length < 1 || name.length > 5) return "Player names must be 1–5 characters.";
   if (!/^[\x20-\x7e]+$/.test(name)) return "Player names can only use letters, numbers and basic symbols.";
   return null;
 }
