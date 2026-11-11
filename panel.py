@@ -628,16 +628,26 @@ class StackPanel(_Panel):
                 serving = idx is not None and server is not None and server[0] == t and server[1] == idx
                 self._text(lbl, players[idx] if idx is not None and idx < len(players) else " ")
                 self._color(lbl, 0x000000 if serving else PLAYER)  # black on the green block
-                lbl.anchored_position = (11 + 22 * col, y + (14 if serving and server[2] else 10))
+                pos = (11 + 22 * col, y + (14 if serving and server[2] else 10))
+                if lbl.anchored_position != pos:
+                    lbl.anchored_position = pos
                 if serving:
-                    hl.x = 22 * col
+                    serve_col = col
+            if serve_col is None:
+                if not hl.hidden:
+                    hl.hidden = True
+                self._text(num, " ")
+            else:
+                if hl.x != 22 * serve_col:
+                    hl.x = 22 * serve_col
+                self._fill(hl_pal, SERVER_BOX)
+                if hl.hidden:
                     hl.hidden = False
-                    self._fill(hl_pal, SERVER_BOX)
-                    num.base_color = 0x000000
-                    num.color = 0
-                    if server[2]:
-                        num.anchored_position = (11 + 22 * col, y + 5)
-                        self._text(num, str(server[2]))
+                self._color(num, 0x000000)  # black on the green block
+                pos = (11 + 22 * serve_col, oy + self.COURT_Y + 5)
+                if num.anchored_position != pos:
+                    num.anchored_position = pos
+                self._text(num, str(server[2]) if server[2] else " ")
         for t in (0, 1):
             for i, (rect, pal) in enumerate(self.c_dots[t]):
                 rect.hidden = i >= v["need"]
