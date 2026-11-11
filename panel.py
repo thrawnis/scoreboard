@@ -696,7 +696,6 @@ class StackPanel(_Panel):
             self._fill(self.c_frames[t][1], TEAM_COLORS[t])
             self._fill(self.c_div[t], TEAM_COLORS[t])
             ball = self.c_ball[t]
-            num = self.c_num[t]
             serve_col = None  # set once, below: never hide-then-show (the display refreshes in between)
             # The two screens are swapped (the Pico's cable plugs into the bottom screen), so the first
             # half of the frame buffer (team A) shows on the bottom screen and B's on the top. The net is
