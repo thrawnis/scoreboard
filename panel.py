@@ -613,9 +613,8 @@ class StackPanel(_Panel):
             self._text(self.c_big[t], text if fits else " ")
             self._text(self.c_mid[t], " " if fits else text)
             hl, hl_pal = self.c_hl[t]
-            hl.hidden = True
             num = self.c_num[t]
-            self._text(num, " ")
+            serve_col = None  # set once, below: never hide-then-show (the display refreshes in between)
             for side in ("R", "L"):
                 # over:   birds-eye, A faces down and B faces up, so A's right court is on the board's left
                 # mirror: the same, flipped left-right
