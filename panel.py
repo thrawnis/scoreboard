@@ -579,8 +579,8 @@ class StackPanel(_Panel):
     # ---------------------------------------------------------------- court diagram
     # One 64x64 canvas (the two panels act as a single screen), top to bottom:
     #   A's court (0-18) | games-won dots and idle timer (22-28) | the call X-Y-Z (33-43) | B's court (45-63)
-    # Teams are told apart by colour, so there are no team-name rows. The courts, the call and the
-    # timer keep even margins (the big font's digits start two rows below their label's top).
+    # Teams are told apart by colour, so there are no team-name rows. Inside the courts every element
+    # keeps a 1-row margin; the call and the timer are centred in the rows left above and below.
     # As displayed the screens are swapped, so the call is at the very top of the board and the
     # timer at the very bottom; the courts meet in the middle at the white net line.
     COURT_Y = (0, 45)
