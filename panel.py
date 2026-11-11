@@ -1,11 +1,12 @@
 # LED panel rendering for the scoreboard, for every sport, on one or two panels.
 # Layouts are driven by Match.view() so they don't need to know the sport.
 #
-# Two panels (128x32):
-#  y 0-9    TEAM A NAME     idle timer / TB     TEAM B NAME
-#  y 10-11  games-won dots                      games-won dots
-#  y 12-31  big score  [MIKE]2              2[ANA ]  big score
-#                      [JO  ]                [BEN ]
+# Two panels, stacked (64x64): each team owns one 64x32 panel - team A on top,
+# team B underneath - and both use the same layout:
+#  y 0-9    TEAM NAME           (top panel: idle timer / TB; bottom: sport icon)
+#  y 10-11  games-won dots
+#  y 12-31  [MIKE]  big score   (server box + serve number on the left)
+#           [JO  ]
 #  Tennis: games in the current set replace the player rows; the server's
 #  name sits below them.
 #
@@ -14,7 +15,8 @@
 #  y 12-31   big score  ::  big score    games in the middle for tennis;
 #                                        timer on the far side)
 #
-# "Switch ends", scoring animations and the start-up screen take over the display.
+# "Switch ends", scoring animations and the start-up screen take over the display
+# (a scoring animation plays on the scorer's own panel).
 
 import time
 
@@ -26,7 +28,7 @@ from adafruit_display_text import label
 import icons
 from anim import Animator
 
-H = 32
+H = 32  # height of one 64x32 panel
 
 TEAM_COLORS = (0xFF3000, 0x0090FF, 0x30FF30, 0xFFD000, 0xFF40FF, 0x00E0FF)  # misc uses up to 6
 SCORE = 0xFFC800
@@ -91,14 +93,14 @@ class _OutlineBox:
         self._inner.y = value + 1
 
 
-def make_panel(display, width):
-    return CompactPanel(display) if width <= 64 else WidePanel(display)
+def make_panel(display, stacked):
+    return StackPanel(display) if stacked else CompactPanel(display)
 
 
 class _Panel:
     """Shared plumbing: fonts, brightness, change detection, messages, animations."""
 
-    W = 128
+    W = 64
 
     def __init__(self, display):
         self.display = display
@@ -196,6 +198,13 @@ class _Panel:
         if self.display.root_group is not group:
             self.display.root_group = group
 
+    def _is_shown(self, group):
+        return self.display.root_group is group
+
+    def _anim_area(self, t, n):
+        """Where a scoring animation plays: (centre x, centre y, y offset, black backdrop?)."""
+        return ((2 * t + 1) * self.W // (2 * n) if n > 2 else None), None, 0, False
+
     def message(self, top=None, bottom=None, small_top=None, small=None, top_color=ALERT, bottom_color=0xFFFFFF):
         self._text(self.msg_top, top)
         self._color(self.msg_top, top_color)
@@ -240,8 +249,8 @@ class _Panel:
                 t = c["tm"]
                 n = c.get("teams", 2)
                 other = TEAM_COLORS[1 - t] if n == 2 else 0xFFFFFF
-                cx = (2 * t + 1) * self.W // (2 * n) if n > 2 else None
-                self.anim.start(c["sport"], t, c["text"], c["level"], TEAM_COLORS[t], other, self.pct, cx)
+                cx, cy, oy, cover = self._anim_area(t, n)
+                self.anim.start(c["sport"], t, c["text"], c["level"], TEAM_COLORS[t], other, self.pct, cx, cy, oy, cover)
         if self.anim.active:
             if self.anim.step():
                 self._show(self.anim.group)
@@ -261,7 +270,7 @@ class _Panel:
             self._show(self.splash_group)
         if time.monotonic() < self.splash_until:
             return
-        if self.display.root_group is self.splash_group:
+        if self._is_shown(self.splash_group):
             self.version = None
 
         fast = m is not None and m.game.layout == "timed" and m.game.running
@@ -291,200 +300,10 @@ class _Panel:
             self.draw(v, app.clock(), second, blink_on, key)
             self._show(self.score_group)
 
-    # ---------------------------------------------------------------- timed games (both widths)
-
-    def _build_timed(self):
-        g = displayio.Group()
-        W = self.W
-        if W > 64:
-            self.t_names = [self._label(self.small, TEAM_COLORS[0], (0.0, 0.0), (1, 0), g),
-                            self._label(self.small, TEAM_COLORS[1], (1.0, 0.0), (W - 1, 0), g)]
-            self.t_period = self._label(self.small, TIMER, (0.0, 0.0), (61, 0), g)
-            self.t_clock = self._label(self.mid, 0xFFFFFF, (0.5, 0.0), (W // 2, 11), g)
-            self.t_status = self._label(self.tiny, ALERT, (0.5, 1.0), (W // 2, H), g)
-            self.t_big = [self._label(self.big, SCORE, (0.5, 1.0), (x, H), g) for x in (22, W - 22)]
-            self.t_mid = [self._label(self.mid, SCORE, (0.5, 0.5), (x, 21), g) for x in (22, W - 22)]
-            self.t_icon_xy = (51, 1)
-        else:
-            self.t_names = None
-            self.t_period = self._label(self.small, TIMER, (0.0, 0.0), (0, 0), g)
-            self.t_clock = self._label(self.small, 0xFFFFFF, (1.0, 0.0), (W, 0), g)
-            self.t_status = None
-            self.t_big = [self._label(self.big, TEAM_COLORS[t], (0.5, 1.0), (x, H), g) for t, x in ((0, 16), (1, 48))]
-            self.t_mid = [self._label(self.mid, TEAM_COLORS[t], (0.5, 0.5), (x, 21), g) for t, x in ((0, 16), (1, 48))]
-            self.t_icon_xy = (21, 1)
-        self.timed_group = g
-
-    def draw_timed(self, v, key, blink_on):
-        if self.timed_group is None:
-            self._build_timed()
-        clock = v["clock"]
-        wide = self.W > 64
-        if wide:
-            for t in (0, 1):
-                self._text(self.t_names[t], v["names"][t][:6].upper())
-        if v["over"]:
-            ctext, ccolor = "FINAL", 0xFFFFFF
-        elif clock["running"]:
-            ctext, ccolor = clock["text"], (0xFF2000 if clock["low"] else 0xFFFFFF)
-        else:
-            ctext, ccolor = clock["text"], ALERT  # stopped
-        status = "TIED" if clock["tied"] else ""
-        if wide:
-            self._text(self.t_clock, ctext)
-            self._color(self.t_clock, ccolor)
-            self._text(self.t_period, clock["period_text"])
-            self._text(self.t_status, status)
-            self._place_icon(self.timed_group, key, *self.t_icon_xy)
-        else:
-            # one panel: period (or FINAL/TIED) on the left, the clock on the right
-            if v["over"]:
-                self._text(self.t_period, "FINAL")
-                self._text(self.t_clock, " ")
-            else:
-                self._text(self.t_period, status or clock["period_text"])
-                self._text(self.t_clock, ctext)
-                self._color(self.t_clock, ccolor)
-            self._place_icon(self.timed_group, key, *self.t_icon_xy, show=not v["over"])
-        big_ok = max(int(b) for b in v["big"]) < (1000 if wide else 100)
-        for t in (0, 1):
-            text = v["big"][t]
-            off = v["over"] and v["winner"] == t and not blink_on
-            self._text(self.t_big[t], text if big_ok else " ")
-            self._text(self.t_mid[t], " " if big_ok else text)
-            base = SCORE if wide else TEAM_COLORS[t]
-            self._color(self.t_big[t], 0x000000 if off else base)
-            self._color(self.t_mid[t], 0x000000 if off else base)
-
-    # ---------------------------------------------------------------- misc: 2-6 teams (both widths)
-
-    def _build_multi(self, n):
-        g = displayio.Group()
-        col = self.W // n
-        self.m_names, self.m_big, self.m_mid = [], [], []
-        for i in range(n):
-            cx = col * i + col // 2
-            if i:
-                rect, pal = self._rect(col * i - 1, 0, 1, H, g)
-                rect.hidden = False
-                self._fill(pal, 0x282828)
-            self.m_names.append(self._label(self.tiny, TEAM_COLORS[i], (0.5, 0.0), (cx, 1), g))
-            self.m_big.append(self._label(self.big, TEAM_COLORS[i], (0.5, 1.0), (cx, H), g))
-            self.m_mid.append(self._label(self.mid, TEAM_COLORS[i], (0.5, 0.5), (cx, 20), g))
-        self.multi_group = g
-        self.multi_n = n
-        self.multi_col = col
-
-    def draw_multi(self, v, blink_on):
-        n = len(v["big"])
-        if self.multi_group is None or self.multi_n != n:
-            self._build_multi(n)
-        col = self.multi_col
-        for i in range(n):
-            self._text(self.m_names[i], v["names"][i].upper()[:max(1, (col - 2) // 5)])
-            text = v["big"][i]
-            fits_big = len(text) * 15 <= col - 2
-            off = v["over"] and v["winner"] == i and not blink_on
-            self._text(self.m_big[i], text if fits_big else " ")
-            self._text(self.m_mid[i], " " if fits_big else text)
-            self._color(self.m_big[i], 0x000000 if off else TEAM_COLORS[i])
-            self._color(self.m_mid[i], 0x000000 if off else TEAM_COLORS[i])
-
-
-class WidePanel(_Panel):
-    W = 128
-    SCORE_X = (18, 110)
-    BOX_X = (37, 69)
-    NUM_X = (61, 66)
-    ROWS_Y = (12, 22)
-    SINGLE_Y = 17
-    DOT_X = ((1, 4, 7), (124, 121, 118))
-    DOT_Y = 10
-
-    def __init__(self, display):
-        super().__init__(display)
-        W = self.W
-        self.dots = [[self._rect(x, self.DOT_Y, 2, 2) for x in self.DOT_X[t]] for t in (0, 1)]
-        self.boxes = [[self._outline(self.BOX_X[t], self.ROWS_Y[r], BOX_W, BOX_H) for r in (0, 1)] for t in (0, 1)]
-        # serve marker when there's no player to highlight (foosball): beside the score
-        self.balls = [self._rect(x, 13, 3, 3) for x in (34, 91)]
-        self.names = [
-            self._label(self.small, TEAM_COLORS[0], (0.0, 0.0), (1, 0)),
-            self._label(self.small, TEAM_COLORS[1], (1.0, 0.0), (W - 1, 0)),
-        ]
-        self.timer = self._label(self.small, TIMER, (0.0, 0.0), (56, 0))  # sport icon sits to its left
-        self.scores = [self._label(self.big, SCORE, (0.5, 1.0), (self.SCORE_X[t], H)) for t in (0, 1)]
-        self.mids = [self._label(self.mid, GAMES, (0.5, 0.0), (self.BOX_X[t] + BOX_W // 2, 10)) for t in (0, 1)]
-        self.inits = [
-            [self._label(self.tiny, PLAYER, (0.5, 0.5), (self.BOX_X[t] + BOX_W // 2, self.ROWS_Y[r] + BOX_H // 2 + 1))
-             for r in (0, 1)]
-            for t in (0, 1)
-        ]
-        self.nums = [self._label(self.tiny, SERVER_NUM, (0.5, 0.5), (self.NUM_X[t], 0)) for t in (0, 1)]
-
-    def start_screen(self, net, step):
-        if net.get("mode") == "ap":
-            lines = ["WIFI %s" % net["ap_ssid"].upper()[:12], "PASS %s" % net["ap_password"].upper()[:12], net["ip"]]
-        elif net.get("mode") == "station":
-            lines = [net["ip"], (net.get("host") or "").upper() or net["ip"]]
-        else:
-            lines = ["NO WI-FI"]
-        self.message("SCOREBOARD", small=lines[step % len(lines)], top_color=0xFFC800)
-
-    def _box(self, t, r, y, text, highlight):
-        box, pal = self.boxes[t][r]
-        lbl = self.inits[t][r]
-        box.y = y
-        box.hidden = not highlight
-        self._fill(pal, SERVER_BOX)
-        lbl.anchored_position = (self.BOX_X[t] + BOX_W // 2, y + BOX_H // 2 + 1)
-        self._text(lbl, text)
-        self._color(lbl, SERVER_TEXT if highlight else PLAYER)
-
-    def draw(self, v, now, second, blink_on, key):
-        server = v["server"]
-        tennis_like = v["mid"][0] is not None
-        self._place_icon(self.score_group, key, 45, 1)
-        for t in (0, 1):
-            self._text(self.names[t], v["names"][t][:6].upper())
-            self._color(self.names[t], 0x000000 if (v["over"] and v["winner"] == t and not blink_on) else TEAM_COLORS[t])
-            self._text(self.scores[t], v["big"][t])
-            self._text(self.mids[t], v["mid"][t] if tennis_like else " ")
-            players = v["players"][t]
-            is_serving = server is not None and server[0] == t
-            ball, ball_pal = self.balls[t]
-            ball.hidden = not (v["serving"] == t and server is None and not v["over"])
-            self._fill(ball_pal, 0xFFFFFF)
-
-            if tennis_like:
-                # games above; only the server's initials below
-                self._box(t, 0, self.ROWS_Y[0], " ", False)
-                if is_serving:
-                    self._box(t, 1, self.ROWS_Y[1], players[server[1]], True)
-                else:
-                    self._box(t, 1, self.ROWS_Y[1], " ", False)
-            else:
-                for r in (0, 1):
-                    if r >= len(players):
-                        self._box(t, r, self.ROWS_Y[r], " ", False)
-                        continue
-                    y = self.ROWS_Y[r] if v["doubles"] else self.SINGLE_Y
-                    self._box(t, r, y, players[r], is_serving and server[1] == r)
-
-            num = self.nums[t]
-            if is_serving and server[2]:
-                row_y = self.ROWS_Y[server[1]] if v["doubles"] else self.SINGLE_Y
-                num.anchored_position = (self.NUM_X[t], row_y + BOX_H // 2 + 1)
-                self._text(num, str(server[2]))
-            else:
-                self._text(num, " ")
-        self._dots(self.dots, v)
-        text, color = self._center_text(v, now, second)
-        self._text(self.timer, text)
-        self._color(self.timer, color)
-
 
 class CompactPanel(_Panel):
+    """One 64x32 panel."""
+
     W = 64
     SCORE_X = (15, 49)
     BOX_X = (0, 42)
@@ -579,3 +398,313 @@ class CompactPanel(_Panel):
             self._place_timer(1.0, self.W)
         self._text(self.timer, text)
         self._color(self.timer, color)
+
+    # ---------------------------------------------------------------- timed games
+
+    def _build_timed(self):
+        g = displayio.Group()
+        W = self.W
+        self.t_period = self._label(self.small, TIMER, (0.0, 0.0), (0, 0), g)
+        self.t_clock = self._label(self.small, 0xFFFFFF, (1.0, 0.0), (W, 0), g)
+        self.t_big = [self._label(self.big, TEAM_COLORS[t], (0.5, 1.0), (x, H), g) for t, x in ((0, 16), (1, 48))]
+        self.t_mid = [self._label(self.mid, TEAM_COLORS[t], (0.5, 0.5), (x, 21), g) for t, x in ((0, 16), (1, 48))]
+        self.t_icon_xy = (21, 1)
+        self.timed_group = g
+
+    def draw_timed(self, v, key, blink_on):
+        if self.timed_group is None:
+            self._build_timed()
+        clock = v["clock"]
+        if v["over"]:
+            ctext, ccolor = "FINAL", 0xFFFFFF
+        elif clock["running"]:
+            ctext, ccolor = clock["text"], (0xFF2000 if clock["low"] else 0xFFFFFF)
+        else:
+            ctext, ccolor = clock["text"], ALERT  # stopped
+        status = "TIED" if clock["tied"] else ""
+        # period (or FINAL/TIED) on the left, the clock on the right
+        if v["over"]:
+            self._text(self.t_period, "FINAL")
+            self._text(self.t_clock, " ")
+        else:
+            self._text(self.t_period, status or clock["period_text"])
+            self._text(self.t_clock, ctext)
+            self._color(self.t_clock, ccolor)
+        self._place_icon(self.timed_group, key, *self.t_icon_xy, show=not v["over"])
+        big_ok = max(int(b) for b in v["big"]) < 100
+        for t in (0, 1):
+            text = v["big"][t]
+            off = v["over"] and v["winner"] == t and not blink_on
+            self._text(self.t_big[t], text if big_ok else " ")
+            self._text(self.t_mid[t], " " if big_ok else text)
+            self._color(self.t_big[t], 0x000000 if off else TEAM_COLORS[t])
+            self._color(self.t_mid[t], 0x000000 if off else TEAM_COLORS[t])
+
+    # ---------------------------------------------------------------- misc: 2-6 teams
+
+    def _build_multi(self, n):
+        g = displayio.Group()
+        col = self.W // n
+        self.m_names, self.m_big, self.m_mid = [], [], []
+        for i in range(n):
+            cx = col * i + col // 2
+            if i:
+                rect, pal = self._rect(col * i - 1, 0, 1, H, g)
+                rect.hidden = False
+                self._fill(pal, 0x282828)
+            self.m_names.append(self._label(self.tiny, TEAM_COLORS[i], (0.5, 0.0), (cx, 1), g))
+            self.m_big.append(self._label(self.big, TEAM_COLORS[i], (0.5, 1.0), (cx, H), g))
+            self.m_mid.append(self._label(self.mid, TEAM_COLORS[i], (0.5, 0.5), (cx, 20), g))
+        self.multi_group = g
+        self.multi_n = n
+        self.multi_col = col
+
+    def draw_multi(self, v, blink_on):
+        n = len(v["big"])
+        if self.multi_group is None or self.multi_n != n:
+            self._build_multi(n)
+        col = self.multi_col
+        for i in range(n):
+            self._text(self.m_names[i], v["names"][i].upper()[:max(1, (col - 2) // 5)])
+            text = v["big"][i]
+            fits_big = len(text) * 15 <= col - 2
+            off = v["over"] and v["winner"] == i and not blink_on
+            self._text(self.m_big[i], text if fits_big else " ")
+            self._text(self.m_mid[i], " " if fits_big else text)
+            self._color(self.m_big[i], 0x000000 if off else TEAM_COLORS[i])
+            self._color(self.m_mid[i], 0x000000 if off else TEAM_COLORS[i])
+
+
+class StackPanel(_Panel):
+    """Two 64x32 panels stacked into a 64x64 board: team A on the top panel, team B below."""
+
+    W = 64
+    OY = (0, 32)  # top of each team's panel
+    SCORE_X = 18
+    BOX_X = 37
+    NUM_X = 61
+    ROWS_Y = (12, 22)
+    SINGLE_Y = 17
+    DOT_X = (1, 4, 7)
+    DOT_Y = 10
+    NAME_CHARS = 5  # leaves room on the right of the name row for the timer / clock
+
+    def __init__(self, display):
+        super().__init__(display)
+        # Everything is shown through one stage group, so a scoring animation can sit
+        # on top of the scoreboard and cover only the panel of the team that scored.
+        self.stage = displayio.Group()
+        self._shown = None
+        self._base = None  # last scoreboard layout shown (what an animation plays over)
+        display.root_group = self.stage
+        # centre the full-screen layouts on the taller board
+        self.msg_top.anchored_position = (32, 14)
+        self.msg_bottom.anchored_position = (32, 50)
+        self.msg_small_top.anchored_position = (32, 20)
+        self.msg_small.anchored_position = (32, 44)
+        self.splash_big.y = 12
+        self.splash_name.anchored_position = (32, 50)
+        self._show(self.msg_group)
+
+        self.dots = [[self._rect(x, oy + self.DOT_Y, 2, 2) for x in self.DOT_X] for oy in self.OY]
+        self.boxes = [[self._outline(self.BOX_X, oy + self.ROWS_Y[r], BOX_W, BOX_H) for r in (0, 1)] for oy in self.OY]
+        # serve marker when there's no player to highlight (foosball): beside the score
+        self.balls = [self._rect(34, oy + 13, 3, 3) for oy in self.OY]
+        self.names = [self._label(self.small, TEAM_COLORS[t], (0.0, 0.0), (1, self.OY[t])) for t in (0, 1)]
+        self.timer = self._label(self.small, TIMER, (1.0, 0.0), (self.W, 0))  # top panel, right
+        self.scores = [self._label(self.big, SCORE, (0.5, 1.0), (self.SCORE_X, oy + H)) for oy in self.OY]
+        self.mids = [self._label(self.mid, GAMES, (0.5, 0.0), (self.BOX_X + BOX_W // 2, oy + 10)) for oy in self.OY]
+        self.inits = [
+            [self._label(self.tiny, PLAYER, (0.5, 0.5), (self.BOX_X + BOX_W // 2, oy + self.ROWS_Y[r] + BOX_H // 2 + 1))
+             for r in (0, 1)]
+            for oy in self.OY
+        ]
+        self.nums = [self._label(self.tiny, SERVER_NUM, (0.5, 0.5), (self.NUM_X, oy)) for oy in self.OY]
+
+    # ---------------------------------------------------------------- display plumbing
+
+    def _show(self, group):
+        if group is self._shown:
+            return
+        self._shown = group
+        if group is self.score_group or group is self.timed_group or group is self.multi_group:
+            self._base = group
+        while len(self.stage):
+            self.stage.pop()
+        if group is self.anim.group and self._base is not None:
+            self.stage.append(self._base)
+        self.stage.append(group)
+
+    def _is_shown(self, group):
+        return self._shown is group
+
+    def _anim_area(self, t, n):
+        if n > 2:  # misc with 3+ teams: a burst over that team's cell
+            x, y, w, h = self._cells(n)[t]
+            return x + w // 2, y + h // 2, 0, False
+        return None, None, self.OY[t], True  # the scorer's panel
+
+    # ---------------------------------------------------------------- start-up
+
+    def start_screen(self, net, step):
+        if net.get("mode") == "ap":
+            pairs = [("WI-FI", net["ap_ssid"]), ("PASSWORD", net["ap_password"]), ("OPEN", net["ip"])]
+        elif net.get("mode") == "station":
+            pairs = [("OPEN", net["ip"])]
+        else:
+            pairs = [("NO WI-FI", "")]
+        top, bottom = pairs[step % len(pairs)]
+        self.message(small_top=top, small=bottom.upper()[:10], top_color=0xFFC800)
+
+    # ---------------------------------------------------------------- standard layout
+
+    def _box(self, t, r, y, text, highlight):
+        box, pal = self.boxes[t][r]
+        lbl = self.inits[t][r]
+        box.y = y
+        box.hidden = not highlight
+        self._fill(pal, SERVER_BOX)
+        lbl.anchored_position = (self.BOX_X + BOX_W // 2, y + BOX_H // 2 + 1)
+        self._text(lbl, text)
+        self._color(lbl, SERVER_TEXT if highlight else PLAYER)
+
+    def draw(self, v, now, second, blink_on, key):
+        server = v["server"]
+        tennis_like = v["mid"][0] is not None
+        self._place_icon(self.score_group, key, self.W - 9, self.OY[1] + 1)  # bottom panel, top right
+        for t in (0, 1):
+            oy = self.OY[t]
+            rows = (oy + self.ROWS_Y[0], oy + self.ROWS_Y[1])
+            single = oy + self.SINGLE_Y
+            self._text(self.names[t], v["names"][t][:self.NAME_CHARS].upper())
+            self._color(self.names[t], 0x000000 if (v["over"] and v["winner"] == t and not blink_on) else TEAM_COLORS[t])
+            self._text(self.scores[t], v["big"][t])
+            self._text(self.mids[t], v["mid"][t] if tennis_like else " ")
+            players = v["players"][t]
+            is_serving = server is not None and server[0] == t
+            ball, ball_pal = self.balls[t]
+            ball.hidden = not (v["serving"] == t and server is None and not v["over"])
+            self._fill(ball_pal, 0xFFFFFF)
+
+            if tennis_like:
+                # games above; only the server's initials below
+                self._box(t, 0, rows[0], " ", False)
+                if is_serving:
+                    self._box(t, 1, rows[1], players[server[1]], True)
+                else:
+                    self._box(t, 1, rows[1], " ", False)
+            else:
+                for r in (0, 1):
+                    if r >= len(players):
+                        self._box(t, r, rows[r], " ", False)
+                        continue
+                    y = rows[r] if v["doubles"] else single
+                    self._box(t, r, y, players[r], is_serving and server[1] == r)
+
+            num = self.nums[t]
+            if is_serving and server[2]:
+                row_y = rows[server[1]] if v["doubles"] else single
+                num.anchored_position = (self.NUM_X, row_y + BOX_H // 2 + 1)
+                self._text(num, str(server[2]))
+            else:
+                self._text(num, " ")
+        self._dots(self.dots, v)
+        text, color = self._center_text(v, now, second)
+        self._text(self.timer, text)
+        self._color(self.timer, color)
+
+    # ---------------------------------------------------------------- timed games
+
+    def _build_timed(self):
+        g = displayio.Group()
+        W = self.W
+        self.t_names = [self._label(self.small, TEAM_COLORS[t], (0.0, 0.0), (1, self.OY[t]), g) for t in (0, 1)]
+        self.t_clock = self._label(self.small, 0xFFFFFF, (1.0, 0.0), (W, 0), g)  # top panel, right
+        self.t_period = self._label(self.small, TIMER, (1.0, 0.0), (W, self.OY[1]), g)  # bottom panel, right
+        self.t_big = [self._label(self.big, SCORE, (0.5, 1.0), (W // 2, oy + H), g) for oy in self.OY]
+        self.t_mid = [self._label(self.mid, SCORE, (0.5, 0.5), (W // 2, oy + 21), g) for oy in self.OY]
+        self.timed_group = g
+
+    def draw_timed(self, v, key, blink_on):
+        if self.timed_group is None:
+            self._build_timed()
+        clock = v["clock"]
+        for t in (0, 1):
+            self._text(self.t_names[t], v["names"][t][:self.NAME_CHARS].upper())
+        if v["over"]:
+            self._text(self.t_clock, "FINAL")
+            self._color(self.t_clock, 0xFFFFFF)
+            self._text(self.t_period, " ")
+        else:
+            if clock["running"]:
+                ccolor = 0xFF2000 if clock["low"] else 0xFFFFFF
+            else:
+                ccolor = ALERT  # stopped
+            self._text(self.t_clock, clock["text"])
+            self._color(self.t_clock, ccolor)
+            self._text(self.t_period, "TIED" if clock["tied"] else clock["period_text"])
+        big_ok = max(int(b) for b in v["big"]) < 1000
+        for t in (0, 1):
+            text = v["big"][t]
+            off = v["over"] and v["winner"] == t and not blink_on
+            self._text(self.t_big[t], text if big_ok else " ")
+            self._text(self.t_mid[t], " " if big_ok else text)
+            self._color(self.t_big[t], 0x000000 if off else SCORE)
+            self._color(self.t_mid[t], 0x000000 if off else SCORE)
+
+    # ---------------------------------------------------------------- misc: 2-6 teams
+
+    @staticmethod
+    def _cells(n):
+        """(x, y, w, h) of each team's cell: 1 per row for 2, then a 2-wide grid."""
+        if n <= 2:
+            cols, cw, ch = 1, 64, 32
+        elif n <= 4:
+            cols, cw, ch = 2, 32, 32
+        else:
+            cols, cw, ch = 2, 32, 21
+        return [((i % cols) * cw, (i // cols) * ch, cw, ch) for i in range(n)]
+
+    def _build_multi(self, n):
+        g = displayio.Group()
+        cells = self._cells(n)
+        self.m_names, self.m_big, self.m_mid = [], [], []
+        for i, (x, y, w, h) in enumerate(cells):
+            cx = x + w // 2
+            self.m_names.append(self._label(self.tiny, TEAM_COLORS[i], (0.5, 0.0), (cx, y + 1), g))
+            if h == 32:
+                self.m_big.append(self._label(self.big, TEAM_COLORS[i], (0.5, 1.0), (cx, y + h), g))
+                self.m_mid.append(self._label(self.mid, TEAM_COLORS[i], (0.5, 0.5), (cx, y + 20), g))
+            else:  # three rows: the 14-pixel font only
+                self.m_big.append(None)
+                self.m_mid.append(self._label(self.mid, TEAM_COLORS[i], (0.5, 1.0), (cx, y + h), g))
+        # thin dividers between the cells
+        lines = set()
+        for x, y, w, h in cells:
+            if x:
+                lines.add((x - 1, 0, 1, 64))
+            if y:
+                lines.add((0, y - 1, 64, 1))
+        for x, y, w, h in lines:
+            rect, pal = self._rect(x, y, w, h, g)
+            rect.hidden = False
+            self._fill(pal, 0x282828)
+        self.multi_group = g
+        self.multi_n = n
+        self.multi_cells = cells
+
+    def draw_multi(self, v, blink_on):
+        n = len(v["big"])
+        if self.multi_group is None or self.multi_n != n:
+            self._build_multi(n)
+        for i, (x, y, w, h) in enumerate(self.multi_cells):
+            self._text(self.m_names[i], v["names"][i].upper()[:max(1, (w - 2) // 5)])
+            text = v["big"][i]
+            fits_big = self.m_big[i] is not None and len(text) * 15 <= w - 2
+            off = v["over"] and v["winner"] == i and not blink_on
+            color = 0x000000 if off else TEAM_COLORS[i]
+            if self.m_big[i] is not None:
+                self._text(self.m_big[i], text if fits_big else " ")
+                self._color(self.m_big[i], color)
+            self._text(self.m_mid[i], " " if fits_big else text)
+            self._color(self.m_mid[i], color)
