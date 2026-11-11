@@ -955,6 +955,12 @@ async function loadSettings() {
 $("#bright").addEventListener("input", e => { $("#bright-v").textContent = e.target.value + "%"; });
 $("#bright").addEventListener("change", e => act("/api/settings", {brightness: +e.target.value}, false));
 $("#anims").addEventListener("change", e => act("/api/settings", {animations: e.target.checked}, false));
+$("#court").addEventListener("click", async e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  const st = await act("/api/settings", {court: b.dataset.v}, false);
+  if (st) $$("#court button").forEach(x => x.classList.toggle("on", x === b));
+});
 $("#flip").addEventListener("change", async e => {
   const st = await act("/api/settings", {serpentine: e.target.checked}, false);
   if (st) toast("Restarting the board… reconnect in about 20 seconds.");
