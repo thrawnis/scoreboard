@@ -592,7 +592,6 @@ class StackPanel(_Panel):
             frame, pal = self._outline(0, y, 44, 20, g)  # court outline and centre line, a dim team colour
             frame.hidden = False
             self._fill(pal, _scale(TEAM_COLORS[t], self.COURT_COLOR))
-            self.c_hl.append(self._rect(0, y, 22, 20, g))  # solid green behind the server's name
             self.c_rx.append(self._outline(0, y, 22, 20, g))  # green frame around the receiver
             self.c_slots.append([self._label(self.tiny, PLAYER, (0.5, 0.5), (11 + 22 * c, y + 10), g) for c in (0, 1)])
             self.c_num.append(self._label(self.tiny, SERVER_NUM, (0.5, 0.5), (11, y + 4), g))
