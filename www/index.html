@@ -997,6 +997,20 @@ async function loadSettings() {
 $("#bright").addEventListener("input", e => { $("#bright-v").textContent = e.target.value + "%"; });
 $("#bright").addEventListener("change", e => act("/api/settings", {brightness: +e.target.value}, false));
 $("#anims").addEventListener("change", e => act("/api/settings", {animations: e.target.checked}, false));
+$("#color-rows").addEventListener("click", async e => {
+  const b = e.target.closest(".sw");
+  if (!b || !S || !S.colors) return;
+  const t = +b.dataset.t, hex = b.dataset.hex, next = S.colors.slice();
+  const other = next.findIndex((c, i) => c === hex && i !== t);  // already another team's colour: swap them
+  if (other >= 0) next[other] = next[t];
+  next[t] = hex;
+  const st = await act("/api/settings", {colors: next}, false);
+  if (st) { S.colors = next; applyColors(next); renderColorPicker(); }
+});
+$("#colors-reset").addEventListener("click", async () => {
+  const st = await act("/api/settings", {colors: null}, false);
+  if (st) { const st2 = await fetch("/api/state").then(r => r.json()).catch(() => null); if (st2) { S = st2; applyColors(S.colors); } renderColorPicker(); }
+});
 $("#remote-team").addEventListener("click", async e => {
   const b = e.target.closest("button");
   if (!b) return;
