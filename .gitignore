@@ -7,3 +7,4 @@
 boot_out.txt
 # may hold Wi-Fi passwords / API keys
 settings.toml
+wifi.json
