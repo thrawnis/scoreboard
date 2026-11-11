@@ -234,13 +234,17 @@ def serial_command(line):
         code, _, body = app.handle(bits[0].upper(), bits[1], {}, bits[2] if len(bits) > 2 else "")
         return "%d %s" % (code, body)
     if cmd == "snap":
-        print("SNAP %d 32" % CHAIN)
-        for y in range(32):
-            print(bytes(framebuffer[y * CHAIN : (y + 1) * CHAIN]).hex())
+        w = WIDTH if STACK else CHAIN
+        print("SNAP %d %d" % (w, HEIGHT))
+        for y in range(HEIGHT):
+            print(bytes(framebuffer[y * w : (y + 1) * w]).hex())
         return "END"
+    if cmd == "flip":
+        code, _, body = app.handle("POST", "/api/settings", {}, '{"serpentine": %s}' % ("false" if SERPENTINE else "true"))
+        return "OK bottom panel %s, restarting" % ("upright" if SERPENTINE else "upside-down") if code == 200 else body
     if cmd == "panels":
         if arg.strip() not in ("1", "2"):
-            return "usage: panels 1|2  (now %d)" % (WIDTH // 64)
+            return "usage: panels 1|2  (now %d)" % (2 if STACK else 1)
         code, _, body = app.handle("POST", "/api/settings", {}, '{"panels": %s}' % arg.strip())
         return "OK panels=%s, restarting" % arg.strip() if code == 200 else body
     if cmd == "devmode":
