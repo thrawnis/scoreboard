@@ -735,7 +735,7 @@ function renderMatchForm() {
     const players = Array.from({length: np}, (_, i) => i);
     const hint = i => !doubles ? "Player" : sp === SPORTS.pickleball || sp === SPORTS.badminton ? "Player " + (i + 1) + (i === 0 ? " (starts right)" : " (starts left)") : "Player " + (i + 1);
     return '<div class="teamform c' + t + '" style="border-left-color:var(--c)"><div class="field"><label>Team ' + LETTERS[t] + ' name</label><input type="text" list="dl-names" maxlength="16" placeholder="Team ' + LETTERS[t] + '" data-tname="' + t + '" value="' + esc(tm.name) + '"></div>' +
-      '<div class="grid2">' + players.map(i => '<div class="field"><label>' + hint(i) + ' name <span class="small">(2–4 letters)</span></label><input type="text" list="dl-players" minlength="2" maxlength="4" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="e.g. MIKE" data-pl="' + t + "," + i + '" value="' + esc(tm.players[i] || "") + '"></div>').join("") + "</div></div>";
+      '<div class="grid2">' + players.map(i => '<div class="field"><label>' + hint(i) + ' name <span class="small">(1–5 letters)</span></label><input type="text" list="dl-players" minlength="1" maxlength="5" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="e.g. MIKE" data-pl="' + t + "," + i + '" value="' + esc(tm.players[i] || "") + '"></div>').join("") + "</div></div>";
   }).join("");
   $("#mf-first").parentElement.hidden = c.sport === "timed" || c.sport === "misc";
   $("#mf-first").innerHTML = [0, 1].map(t => '<button data-first="' + t + '" class="' + (form.first === t ? "on" : "") + '">' + esc(form.teams[t].name || "Team " + "AB"[t]) + "</button>").join("");
