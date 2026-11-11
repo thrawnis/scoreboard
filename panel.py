@@ -666,10 +666,11 @@ class StackPanel(_Panel):
             base_y, net_y = (cy + 16, cy + 6) if t == 0 else (cy + 6, cy + 16)
             ball_y = cy + 2 if t == 0 else cy + 10
             for side in ("R", "L"):
-                # over:   birds-eye, A faces down and B faces up, so A's right court is on the board's left
+                # over:   birds-eye. As displayed, B (top screen) faces down and A (bottom screen) faces up,
+                #         so B's right-hand court is on the viewer's left and A's on the viewer's right
                 # mirror: the same, flipped left-right
                 # same:   every team's right court on the board's right (as if both stood at one end)
-                right_col = 1 if (self.court_mode == "same" or (self.court_mode == "over") == bool(t)) else 0
+                right_col = 1 if (self.court_mode == "same" or (self.court_mode == "over") != bool(t)) else 0
                 col = right_col if side == "R" else 1 - right_col
                 idx = v["courts"][t].get(side)
                 players = v["players"][t]
