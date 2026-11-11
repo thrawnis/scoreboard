@@ -657,7 +657,10 @@ class StackPanel(_Panel):
             ball = self.c_ball[t]
             num = self.c_num[t]
             serve_col = None  # set once, below: never hide-then-show (the display refreshes in between)
-            # the baseline is the end of the court away from the net: the top for A, the bottom for B
+            # The two screens are swapped (the Pico's cable plugs into the bottom screen), so the first
+            # half of the frame buffer (team A) shows on the bottom screen and B's on the top. The net is
+            # where the two courts meet: A's court has it at its top edge, B's at its bottom edge.
+            # The baseline is the end of the court away from the net: the bottom for A, the top for B.
             # Text is 6 rows tall, drawn from 4 above its anchor row to 1 below it; both ends of both
             # courts leave 1 clear row inside the line. The 8-row ball is centred on the same row.
             base_y, net_y = (cy + 6, cy + 16) if t == 0 else (cy + 16, cy + 6)
