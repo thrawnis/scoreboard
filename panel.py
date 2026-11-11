@@ -613,8 +613,12 @@ class StackPanel(_Panel):
             self._text(self.c_big[t], text if fits else " ")
             self._text(self.c_mid[t], " " if fits else text)
             hl, hl_pal = self.c_hl[t]
+            rx, rx_pal = self.c_rx[t]
             num = self.c_num[t]
-            serve_col = None  # set once, below: never hide-then-show (the display refreshes in between)
+            serve_col = recv_col = None  # set once, below: never hide-then-show (the display refreshes in between)
+            cy = oy + self.COURT_Y
+            # the baseline is the end of the court away from the net: the top for A, the bottom for B
+            base_y, net_y = (cy + 5, cy + 15) if t == 0 else (cy + 15, cy + 5)
             for side in ("R", "L"):
                 # over:   birds-eye, A faces down and B faces up, so A's right court is on the board's left
                 # mirror: the same, flipped left-right
