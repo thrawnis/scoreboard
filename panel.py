@@ -598,8 +598,9 @@ class StackPanel(_Panel):
         password is masked after its first character. Every line sits wholly on one screen: nothing may
         cross the middle of the canvas, where the two screens meet."""
         if self.start_group is None:
-            # The smallest font (4x6, public domain), with lower-case letters and "*": the Wi-Fi name and
-            # the masked password are shown exactly as written. Loaded only now, because RAM is tight at start-up.
+            # The smallest font (4x6, public domain), with lower-case letters: the Wi-Fi name and the first
+            # character of the password are shown exactly as written (the rest of the password is dashes).
+            # Loaded only now, because RAM is tight at start-up.
             gc.collect()
             micro = bitmap_font.load_font("/fonts/4x6.bdf")
             micro.load_glyphs("".join(chr(c) for c in range(32, 127)))
@@ -612,7 +613,7 @@ class StackPanel(_Panel):
         mode = net.get("mode")
         if mode == "ap":
             password = net.get("ap_password") or ""
-            lines = [net.get("ap_ssid") or "", password[:1] + "*" * (len(password) - 1), net.get("ip") or ""]
+            lines = [net.get("ap_ssid") or "", password[:1] + "-" * (len(password) - 1), net.get("ip") or ""]
         elif mode == "station":
             lines = [net.get("ssid") or "", "", net.get("ip") or ""]
         else:
