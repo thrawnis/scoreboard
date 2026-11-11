@@ -501,6 +501,7 @@ class CompactPanel(_Panel):
         col = self.multi_col
         for i in range(n):
             self._text(self.m_names[i], short_name(v["names"][i]).upper()[:max(1, (col - 2) // 5)])
+            self._color(self.m_names[i], TEAM_COLORS[i])
             text = v["big"][i]
             fits_big = len(text) * 15 <= col - 2
             off = v["over"] and v["winner"] == i and not blink_on
