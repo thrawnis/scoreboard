@@ -958,6 +958,12 @@ async function loadSettings() {
 $("#bright").addEventListener("input", e => { $("#bright-v").textContent = e.target.value + "%"; });
 $("#bright").addEventListener("change", e => act("/api/settings", {brightness: +e.target.value}, false));
 $("#anims").addEventListener("change", e => act("/api/settings", {animations: e.target.checked}, false));
+$("#remote-team").addEventListener("click", async e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  const st = await act("/api/settings", {remote_team: +b.dataset.v}, false);
+  if (st) $$("#remote-team button").forEach(x => x.classList.toggle("on", x === b));
+});
 $("#court").addEventListener("click", async e => {
   const b = e.target.closest("button");
   if (!b) return;
