@@ -368,6 +368,7 @@ class App:
             "panels": 2,  # single-screen mode is disabled for now (code.py always runs the stacked board)
             "serpentine": self.meta.get("serpentine", True),
             "court": self.meta.get("court", "over"),
+            "remote_team": 1 if self.meta.get("remote_team", 1) else 0,
             "animations": self.meta.get("animations", True),
             "alert": self.alert,
             "match": None,
