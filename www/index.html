@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scoreboard">
+<meta name="theme-color" content="#101418">
+<title>Scoreboard</title>
+<style>
+:root {
+  --bg: #f3f4f6; --card: #ffffff; --ink: #111827; --muted: #6b7280; --line: #e5e7eb;
+  --a: #e2461d; --a-soft: #fde5dd; --b: #1b74d8; --b-soft: #dcebfc;
+  --serve: #22c55e; --serve-ink: #052e12; --warn: #b45309; --warn-soft: #fef3c7;
+  --danger: #b91c1c; --btn: #e5e7eb; --btn-ink: #111827;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0f14; --card: #151b23; --ink: #f3f4f6; --muted: #9aa4b2; --line: #263040;
+    --a-soft: #3a1a10; --b-soft: #0f2640; --warn-soft: #3a2a08; --btn: #243040; --btn-ink: #f3f4f6;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 16px/1.35 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; padding-bottom: env(safe-area-inset-bottom); }
+button, input, select { font: inherit; color: inherit; }
+button { border: 0; border-radius: 12px; background: var(--btn); color: var(--btn-ink); padding: 12px 14px; cursor: pointer; }
+button:disabled { opacity: .45; }
+button.primary { background: var(--ink); color: var(--bg); font-weight: 600; }
+button.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.num { font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+
+header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: calc(env(safe-area-inset-top) + 8px) 12px 8px; border-bottom: 1px solid var(--line); }
+.bar { display: flex; align-items: center; gap: 8px; }
+.bar h1 { font-size: 17px; margin: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.ok { background: var(--serve); } .dot.bad { background: var(--danger); }
+nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+nav button { padding: 8px; font-size: 15px; }
+nav button.on { background: var(--ink); color: var(--bg); }
+main { padding: 12px; max-width: 760px; margin: 0 auto; }
+.card { background: var(--card); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > * { flex: 1; }
+.banner { border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; font-weight: 600; display: flex; gap: 10px; align-items: center; }
+.banner.warn { background: var(--warn-soft); color: var(--warn); }
+
+/* score view */
+.callbox { text-align: center; padding: 10px 14px; }
+.call { font-size: 44px; font-weight: 800; letter-spacing: 1px; }
+.callsub { color: var(--muted); }
+.extra { font-weight: 700; margin-top: 4px; }
+.timers { display: flex; justify-content: center; gap: 22px; margin-top: 6px; }
+.timers div { text-align: center; }
+.timers .lbl { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.timers .t { font-size: 22px; font-weight: 700; }
+.teams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.team { border-radius: 16px; padding: 12px 10px; background: var(--card); border: 3px solid transparent; display: flex; flex-direction: column; gap: 8px; }
+.team.t0 { --c: var(--a); --soft: var(--a-soft); }
+.team.t1 { --c: var(--b); --soft: var(--b-soft); }
+.team.serving { border-color: var(--c); }
+.tname { display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--c); min-height: 24px; }
+.tname span:first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pips { display: flex; gap: 4px; }
+.pip { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--c); }
+.pip.won { background: var(--c); }
+.score { font-size: 72px; font-weight: 800; line-height: 1; text-align: center; }
+.sub { text-align: center; font-weight: 700; color: var(--muted); }
+.badge { align-self: center; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--warn-soft); color: var(--warn); }
+.court { display: grid; grid-template-columns: 1fr 1fr; border: 2px solid var(--c); border-radius: 8px; overflow: hidden; background: var(--soft); }
+.court > div { min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.court > div + div { border-left: 2px solid var(--c); }
+.court .side { font-size: 11px; color: var(--muted); }
+.chips { display: flex; justify-content: center; gap: 8px; min-height: 36px; align-items: center; background: var(--soft); border-radius: 8px; padding: 6px; }
+.chip { font-weight: 800; font-size: 18px; padding: 2px 8px; border-radius: 8px; }
+.chip.server { background: var(--serve); color: var(--serve-ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--serve) 35%, transparent); }
+.chip.server small { font-size: 12px; margin-left: 3px; }
+.serve-tag { font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: var(--serve); color: var(--serve-ink); }
+.rally { background: var(--c); color: #fff; font-weight: 700; min-height: 92px; font-size: 18px; display: flex; flex-direction: column; justify-content: center; }
+.rally small { font-weight: 500; opacity: .9; font-size: 14px; margin-top: 2px; }
+.rally:active { filter: brightness(1.15); transform: scale(.98); }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.actions .undo { grid-column: 1 / -1; text-align: left; }
+.actions .undo small { display: block; color: var(--muted); font-size: 13px; }
+.setup h3, .over h3 { margin: 0 0 8px; font-size: 16px; }
+.seg { display: flex; background: var(--btn); border-radius: 12px; padding: 3px; gap: 3px; flex-wrap: wrap; }
+.seg button { flex: 1; background: transparent; padding: 9px 6px; border-radius: 9px; }
+.seg button.on { background: var(--card); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+.field { margin-bottom: 12px; }
+.field > label, .lbl2 { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+input[type=text], input[type=number], input[type=password], select { width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); }
+input[type=range] { width: 100%; }
+input[type=checkbox] { flex: none !important; width: 24px; height: 24px; }
+.over { text-align: center; }
+.over .big { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+.sports { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; }
+.sports button.on { background: var(--ink); color: var(--bg); font-weight: 700; }
+
+/* dialogs */
+dialog { border: 0; border-radius: 18px; padding: 0; width: min(560px, calc(100vw - 20px)); max-height: calc(100vh - 40px); background: var(--bg); color: var(--ink); }
+dialog::backdrop { background: rgba(0,0,0,.5); }
+.dlg-head { display: flex; align-items: center; gap: 8px; padding: 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 1; }
+.dlg-head h2 { flex: 1; margin: 0; font-size: 18px; }
+.dlg-body { padding: 14px; }
+.teamform { border-left: 4px solid var(--c); padding-left: 10px; margin-bottom: 14px; }
+.teamform.t0 { --c: var(--a); } .teamform.t1 { --c: var(--b); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* history */
+.match-h { font-size: 13px; color: var(--muted); margin: 14px 4px 6px; }
+.game-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--card); margin-bottom: 6px; }
+.game-row .gs { flex: 1; }
+.game-row .w { font-weight: 800; }
+.tag { font-size: 11px; padding: 2px 6px; border-radius: 6px; background: var(--warn-soft); color: var(--warn); }
+table.log { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.log td { padding: 7px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.log td:first-child { color: var(--muted); white-space: nowrap; }
+table.log td:last-child { text-align: right; font-weight: 700; white-space: nowrap; }
+table.log tr.u td:nth-child(2) { color: var(--warn); }
+code { background: var(--btn); padding: 2px 6px; border-radius: 6px; font-size: 13px; word-break: break-all; }
+ol.steps li { margin-bottom: 8px; }
+.pts { display: grid; grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); gap: 6px; }
+.pts button { background: var(--c); color: #fff; font-weight: 800; font-size: 20px; min-height: 64px; }
+.pts button:active { filter: brightness(1.15); transform: scale(.97); }
+.clockcard { text-align: center; }
+.clock { font-size: 56px; font-weight: 800; line-height: 1.1; }
+.clock.stopped { color: var(--warn); } .clock.low { color: var(--danger); }
+.clockbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.clockbtns .go { grid-column: 1 / -1; min-height: 60px; font-size: 20px; font-weight: 800; }
+.mrow { display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 14px; padding: 10px 12px; margin-bottom: 8px; border-left: 6px solid var(--c); }
+.mrow .mn { flex: 1; font-weight: 700; color: var(--c); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow .ms { font-size: 40px; font-weight: 800; min-width: 64px; text-align: center; }
+.mrow button { width: 56px; height: 56px; font-size: 28px; font-weight: 800; padding: 0; }
+.mrow button.plus { background: var(--c); color: #fff; }
+.c0 { --c: var(--a); } .c1 { --c: var(--b); } .c2 { --c: #16a34a; } .c3 { --c: #ca8a04; } .c4 { --c: #c026d3; } .c5 { --c: #0891b2; }
+#toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; max-width: 90vw; z-index: 50; opacity: 0; transition: opacity .2s; pointer-events: none; }
+#toast.show { opacity: 1; }
+@media (max-width: 380px) { .score { font-size: 60px; } .call { font-size: 38px; } .rally { font-size: 16px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar"><span id="conn" class="dot" title="connection"></span><h1 id="title">Scoreboard</h1></div>
+  <nav>
+    <button data-view="score" class="on">Score</button>
+    <button data-view="history">History</button>
+    <button data-view="settings">Settings</button>
+  </nav>
+</header>
+
+<main>
+  <div id="storage-warn" class="banner warn" hidden>Storage is read-only (dev mode): games won't be saved.</div>
+
+  <!-- SCORE -->
+  <section id="view-score">
+    <div id="nomatch" class="card" hidden style="text-align:center;padding:28px 14px">
+      <h2 style="margin-top:0">No match in progress</h2>
+      <p class="muted">Pick a sport, set up teams and players, and start.</p>
+      <button class="primary" data-act="newmatch" style="width:100%">New match</button>
+    </div>
+
+    <div id="live" hidden>
+      <div id="alert" class="banner warn" hidden></div>
+      <div class="card callbox">
+        <div class="call num" id="call">0-0</div>
+        <div class="callsub" id="callsub"></div>
+        <div class="extra num" id="extra" hidden></div>
+        <div class="timers">
+          <div><span class="lbl">Since last change</span><span class="t num" id="idle">0:00</span></div>
+          <div><span class="lbl" id="gtime-l">Game time</span><span class="t num" id="gtime">0:00</span></div>
+        </div>
+      </div>
+
+      <div id="clockcard" class="card clockcard" hidden>
+        <div class="muted" id="clock-period"></div>
+        <div class="clock num" id="clock">0:00</div>
+        <div class="clockbtns">
+          <button class="go primary" data-act="clock" data-a="toggle" id="clock-go">Start clock</button>
+          <button data-act="clockset">Set clock</button>
+          <button data-act="clock" data-a="next" id="clock-next">Next period</button>
+          <button data-act="clock" data-a="ot" id="clock-ot" hidden>Add overtime</button>
+          <button data-act="clock" data-a="end" id="clock-end">End game</button>
+        </div>
+      </div>
+
+      <div id="setup" class="card setup" hidden>
+        <h3>Before the first serve</h3>
+        <div class="field"><span class="lbl2">Serving first</span><div class="seg" id="setup-serve"></div></div>
+        <div class="grid2" id="setup-players">
+          <div><span class="lbl2" id="setup-rt0-l"></span><div class="seg" id="setup-rt0"></div></div>
+          <div><span class="lbl2" id="setup-rt1-l"></span><div class="seg" id="setup-rt1"></div></div>
+        </div>
+      </div>
+
+      <div id="over" class="card over" hidden></div>
+
+      <div class="teams" id="teams"></div>
+
+      <div class="actions">
+        <button class="undo" data-act="undo" id="undo">Undo<small id="undo-l">Nothing to undo</small></button>
+        <button data-act="adjust">Correct score</button>
+        <button data-act="newmatch">New match</button>
+        <button data-act="finish" id="finish" hidden>Finish game</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="view-history" hidden>
+    <div class="row" style="margin-bottom:8px">
+      <div class="muted small" id="hist-count"></div>
+      <button style="flex:none" data-act="export">Export JSON</button>
+    </div>
+    <div id="hist-list"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" hidden>
+    <div class="card">
+      <div class="field"><label for="bright">Board brightness <span id="bright-v" class="num"></span></label>
+        <input type="range" id="bright" min="5" max="100" step="5"></div>
+      <div class="field"><span class="lbl2">Board size (the board restarts to apply it)</span>
+        <div class="seg" id="panels"><button data-v="1">1 panel · 64×32</button><button data-v="2">2 panels · 128×32</button></div></div>
+      <div class="row" style="margin-bottom:12px"><label for="anims" style="flex:3">Scoring animations on the board</label>
+        <input type="checkbox" id="anims"></div>
+      <div class="row"><label for="speak" style="flex:3">Announce the score on this phone</label>
+        <input type="checkbox" id="speak"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Apple Watch &amp; Siri</h3>
+      <p class="small muted" style="margin-top:0">Create Shortcuts on your iPhone that call the scoreboard. They also run from the Apple Watch
+        (Shortcuts app, a watch-face complication, or the Action button) and from Siri. Your iPhone must be on the scoreboard's Wi-Fi.</p>
+      <ol class="steps small">
+        <li>Open <b>Shortcuts</b> on iPhone, tap <b>+</b>, add the action <b>Get Contents of URL</b>.</li>
+        <li>Set the URL to one of the addresses below, tap the arrow to show more options, and set <b>Method</b> to <b>POST</b>.</li>
+        <li>Add the action <b>Show Result</b> (or <b>Speak Text</b>) so the watch shows the new score.</li>
+        <li>Name it (e.g. “Point Team A”), open its details (ⓘ) and turn on <b>Show on Apple Watch</b>.</li>
+      </ol>
+      <div id="watch-urls" class="small"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Wi-Fi</h3>
+      <p class="small muted" style="margin-top:0" id="net-info"></p>
+      <div class="field"><label for="ssid">Join network (leave empty to always use the scoreboard's own Wi-Fi)</label><input type="text" id="ssid" autocapitalize="off" autocorrect="off"></div>
+      <div class="field"><label for="pw">Password</label><input type="password" id="pw"></div>
+      <div class="row"><button data-act="wifi">Save</button><button data-act="reboot">Restart board</button></div>
+      <p class="small muted">Changes take effect after a restart. If the network can't be joined, the board starts its own Wi-Fi instead.</p>
+    </div>
+  </section>
+</main>
+
+<!-- NEW MATCH -->
+<dialog id="dlg-match">
+  <div class="dlg-head"><h2>New match</h2><button data-close>Cancel</button><button class="primary" data-act="startmatch">Start</button></div>
+  <div class="dlg-body">
+    <div class="field"><span class="lbl2">Sport</span><div class="sports" id="mf-sport"></div></div>
+    <div id="mf-opts"></div>
+    <div id="mf-teams"></div>
+    <div class="field"><span class="lbl2">Serving first</span><div class="seg" id="mf-first"></div></div>
+    <datalist id="dl-names"></datalist>
+    <datalist id="dl-players"></datalist>
+  </div>
+</dialog>
+
+<!-- CORRECT SCORE -->
+<dialog id="dlg-adjust">
+  <div class="dlg-head"><h2>Correct score</h2><button data-close>Cancel</button><button class="primary" data-act="saveadjust">Save</button></div>
+  <div class="dlg-body" id="adj-body"></div>
+</dialog>
+
+<!-- GAME DETAIL -->
+<dialog id="dlg-game">
+  <div class="dlg-head"><h2 id="gd-title">Game</h2><button data-close>Close</button></div>
+  <div class="dlg-body" id="gd-body"></div>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const nowSec = () => Date.now() / 1000;
+
+/* ---------------------------------------------------------------- sports */
+
+const TIMED = {
+  basketball: {periods: 4, minutes: 12, count: "down", buttons: [1, 2, 3], emoji: "🏀", name: "Basketball"},
+  soccer: {periods: 2, minutes: 45, count: "up", buttons: [1], emoji: "⚽", name: "Soccer"},
+  hockey: {periods: 3, minutes: 20, count: "down", buttons: [1], emoji: "🏒", name: "Hockey"},
+  football: {periods: 4, minutes: 15, count: "down", buttons: [6, 3, 2, 1], emoji: "🏈", name: "Football"},
+  custom: {periods: 2, minutes: 10, count: "down", buttons: [1, 2, 3], emoji: "⏱️", name: "Timed game"},
+};
+const MODE = {k: "mode", label: "Format", choices: [["doubles", "Doubles"], ["singles", "Singles"]]};
+const SWITCH = {k: "switch_ends", label: "Remind to switch ends", check: true};
+const SPORTS = {
+  pickleball: {
+    name: "Pickleball", emoji: "🥒", unit: "Game", verb: "won rally",
+    defaults: {mode: "doubles", scoring: "sideout", points: 11, win_by: 2, games: 1, switch_ends: true},
+    fields: [MODE,
+      {k: "scoring", label: "Scoring", choices: [["sideout", "Side-out"], ["rally", "Rally"]]},
+      {k: "points", label: "Game to", choices: [[11, "11"], [15, "15"], [21, "21"]], half: true},
+      {k: "win_by", label: "Win by", choices: [[2, "2"], [1, "1"]], half: true},
+      {k: "games", label: "Match", choices: [[1, "1 game"], [3, "Best of 3"], [5, "Best of 5"]]},
+      SWITCH],
+    desc: c => (c.scoring === "rally" ? "rally" : "side-out") + " scoring to " + c.points,
+  },
+  tennis: {
+    name: "Tennis", emoji: "🎾", unit: "Set", verb: "won point",
+    defaults: {mode: "singles", games: 3, set_games: 6, no_ad: false, final_tb: false, switch_ends: true},
+    fields: [MODE,
+      {k: "games", label: "Match", choices: [[1, "1 set"], [3, "Best of 3"], [5, "Best of 5"]]},
+      {k: "set_games", label: "Games per set", choices: [[6, "6 (tiebreak at 6-6)"], [4, "4 (short sets)"]]},
+      {k: "no_ad", label: "No-ad scoring (deciding point at deuce)", check: true},
+      {k: "final_tb", label: "Final set is a 10-point match tiebreak", check: true},
+      SWITCH],
+    desc: c => "best of " + c.games + (c.games === 1 ? " set" : " sets") + (c.set_games !== 6 ? ", " + c.set_games + "-game sets" : "") + (c.no_ad ? ", no-ad" : "") + (c.final_tb ? ", match tiebreak" : ""),
+  },
+  badminton: {
+    name: "Badminton", emoji: "🏸", unit: "Game", verb: "won rally",
+    defaults: {mode: "singles", points: 21, games: 3, switch_ends: true},
+    fields: [MODE,
+      {k: "points", label: "Game to", choices: [[21, "21"], [15, "15"], [11, "11"]]},
+      {k: "games", label: "Match", choices: [[1, "1 game"], [3, "Best of 3"], [5, "Best of 5"]]},
+      SWITCH],
+    desc: c => "rally scoring to " + c.points,
+  },
+  pingpong: {
+    name: "Ping pong", emoji: "🏓", unit: "Game", verb: "won point",
+    defaults: {mode: "singles", points: 11, games: 3, switch_ends: true},
+    fields: [MODE,
+      {k: "points", label: "Game to", choices: [[11, "11"], [21, "21"]]},
+      {k: "games", label: "Match", choices: [[1, "1 game"], [3, "Best of 3"], [5, "Best of 5"], [7, "Best of 7"]]},
+      SWITCH],
+    desc: c => "to " + c.points,
+  },
+  foosball: {
+    name: "Foosball", emoji: "🥅", unit: "Game", verb: "scored",
+    defaults: {mode: "doubles", points: 5, win_by: 1, games: 3},
+    fields: [MODE,
+      {k: "points", label: "Goals to win", choices: [[5, "5"], [10, "10"]], half: true},
+      {k: "win_by", label: "Win by", choices: [[1, "1"], [2, "2"]], half: true},
+      {k: "games", label: "Match", choices: [[1, "1 game"], [3, "Best of 3"], [5, "Best of 5"]]}],
+    desc: c => c.points + " goals",
+  },
+  volleyball: {
+    name: "Volleyball", emoji: "🏐", unit: "Set", verb: "won rally",
+    defaults: {variant: "indoor", games: 5, switch_ends: true},
+    fields: [{k: "variant", label: "Type", choices: [["indoor", "Indoor (teams)"], ["beach", "Beach (2 players)"]]},
+      {k: "games", label: "Match", choices: [[1, "1 set"], [3, "Best of 3"], [5, "Best of 5"]]},
+      SWITCH],
+    desc: c => (c.variant === "beach" ? "beach, sets to 21" : "indoor, sets to 25") + ", deciding set to 15",
+  },
+  racquetball: {
+    name: "Racquetball", emoji: "🔵", unit: "Game", verb: "won rally",
+    defaults: {mode: "singles", games: 3},
+    fields: [MODE, {k: "games", label: "Match", choices: [[1, "1 game"], [3, "Best of 3"], [5, "Best of 5"]]}],
+    desc: c => "games to 15, tiebreaker to 11",
+  },
+  airhockey: {
+    name: "Air hockey", emoji: "💨", unit: "Game", verb: "scored",
+    defaults: {mode: "singles", points: 7, win_by: 1, games: 1},
+    fields: [MODE,
+      {k: "points", label: "Goals to win", choices: [[7, "7"], [10, "10"]], half: true},
+      {k: "win_by", label: "Win by", choices: [[1, "1"], [2, "2"]], half: true},
+      {k: "games", label: "Match", choices: [[1, "1 game"], [3, "Best of 3"], [5, "Best of 5"], [7, "Best of 7"]]}],
+    desc: c => c.points + " goals",
+  },
+  shuffleboard: {
+    name: "Shuffleboard", emoji: "🥌", unit: "Game", verb: "scored",
+    defaults: {mode: "singles", points: 15, games: 1},
+    fields: [MODE,
+      {k: "points", label: "Game to", choices: [[15, "15"], [21, "21"]]},
+      {k: "games", label: "Match", choices: [[1, "1 game"], [3, "Best of 3"]]}],
+    desc: c => "to " + c.points,
+  },
+  timed: {
+    name: "Timed game", emoji: "⏱️", unit: "Game", verb: "scored",
+    defaults: {preset: "basketball", periods: 4, minutes: 12, count: "down", buttons: [1, 2, 3]},
+    fields: [{k: "preset", label: "Game", choices: Object.entries(TIMED).map(([k, p]) => [k, p.emoji + " " + (k === "custom" ? "Custom" : p.name)])},
+      {k: "periods", label: "Periods", number: [1, 9], half: true},
+      {k: "minutes", label: "Minutes each", number: [1, 90], half: true},
+      {k: "count", label: "Clock", choices: [["down", "Counts down"], ["up", "Counts up"]], only: "custom"},
+      {k: "buttons", label: "Score buttons, e.g. 1,2,3", text: true, only: "custom"}],
+    desc: c => (TIMED[c.preset] || TIMED.custom).name + ", " + c.periods + " × " + c.minutes + " min",
+  },
+  misc: {
+    name: "Misc", emoji: "🔢", unit: "Game", verb: "scored",
+    defaults: {teams: 2},
+    fields: [{k: "teams", label: "Number of teams", choices: [[2, "2"], [3, "3"], [4, "4"], [5, "5"], [6, "6"]]}],
+    desc: c => c.teams + " teams, scored by hand",
+  },
+};
+const LETTERS = "ABCDEF";
+const playersFor = cfg => cfg.sport === "timed" || cfg.sport === "misc" ? 0 : cfg.sport === "volleyball" ? (cfg.variant === "beach" ? 2 : 0) : (cfg.mode === "doubles" ? 2 : 1);
+const teamCount = cfg => cfg.sport === "misc" ? (cfg.teams || 2) : 2;
+const emojiOf = cfg => cfg && cfg.sport === "timed" ? (TIMED[cfg.preset] || TIMED.custom).emoji : sportOf(cfg).emoji;
+const nameOf = cfg => cfg && cfg.sport === "timed" ? (TIMED[cfg.preset] || TIMED.custom).name : sportOf(cfg).name;
+const sportOf = cfg => SPORTS[(cfg && cfg.sport) || "pickleball"] || SPORTS.pickleball;
+const describeCfg = cfg => (cfg.mode ? (cfg.mode === "doubles" ? "Doubles" : "Singles") + ", " : "") + sportOf(cfg).desc(cfg);
+
+/* ---------------------------------------------------------------- state */
+
+let S = null;          // last state from the board
+let offset = 0;        // board clock minus phone clock
+let busy = false;
+let view = "score";
+let lastCall = null;
+
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+function fmtDur(s) {
+  s = Math.max(0, Math.floor(s));
+  const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, sec = s % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(sec).padStart(2, "0");
+}
+function fmtTime(t) { return new Date(t * 1000).toLocaleTimeString([], {hour: "numeric", minute: "2-digit", second: "2-digit"}); }
+function fmtDate(t) { return new Date(t * 1000).toLocaleString([], {weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}); }
+
+async function api(method, path, body) {
+  const opts = {method, headers: {}};
+  if (method !== "GET") {
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(Object.assign({now: nowSec()}, body || {}));
+  }
+  const url = method === "GET" && path === "/api/state" ? path + "?now=" + nowSec().toFixed(0) : path;
+  const r = await fetch(url, opts);
+  const ct = r.headers.get("Content-Type") || "";
+  const data = ct.includes("json") ? await r.json() : await r.text();
+  if (!r.ok) {
+    if (data && data.state) setState(data.state);
+    throw new Error((data && data.error) || ("HTTP " + r.status));
+  }
+  return data;
+}
+
+async function act(path, body, withVersion = true) {
+  if (busy) return;
+  busy = true; renderBusy();
+  try {
+    const st = await api("POST", path, Object.assign(withVersion && S ? {v: S.v} : {}, body || {}));
+    if (st && st.v !== undefined) setState(st);
+    return st;
+  } catch (e) { toast(e.message); }
+  finally { busy = false; renderBusy(); }
+}
+
+function renderBusy() { $$("#view-score button").forEach(b => b.disabled = busy || b.dataset.off === "1"); }
+
+async function poll() {
+  try {
+    const st = await api("GET", "/api/state");
+    setOnline(true);
+    if (!S || st.v !== S.v || st.alert?.until !== S.alert?.until) setState(st); else { offset = st.now - nowSec(); }
+  } catch (e) { setOnline(false); }
+  setTimeout(poll, document.hidden ? 5000 : 1000);
+}
+function setOnline(ok) { $("#conn").className = "dot " + (ok ? "ok" : "bad"); }
+
+function setState(st) {
+  offset = st.now - nowSec();
+  const prevCall = S?.match?.game?.call + "|" + S?.match?.game?.scores;
+  S = st;
+  render();
+  const g = st.match?.game;
+  const call = g ? g.call + "|" + g.scores : "";
+  if (lastCall !== null && g && call !== prevCall) announce();
+  lastCall = call;
+}
+
+function announce() {
+  if (store("speak") !== "1" || !("speechSynthesis" in window) || !S?.match) return;
+  const m = S.match, g = m.game, T = m.teams;
+  let text;
+  if (g.over) text = g.winner === null ? "It's a tie" : T[g.winner].name + " wins the " + (m.over ? "match" : g.unit.toLowerCase());
+  else if (m.sport === "pickleball") text = g.call.split("-").join(", ");
+  else if (m.sport === "tennis") text = g.call.replace("-", " ");
+  else text = g.big.join(" to ");
+  speechSynthesis.cancel();
+  speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+}
+
+/* ---------------------------------------------------------------- score view */
+
+function render() {
+  $("#storage-warn").hidden = !S || S.storage;
+  const m = S && S.match;
+  $("#nomatch").hidden = !!m;
+  $("#live").hidden = !m;
+  if (!m) { $("#title").textContent = "Scoreboard"; renderBusy(); return; }
+  const g = m.game, c = m.cfg, T = m.teams, sp = sportOf(c);
+  const doubles = playersFor(c) === 2;
+  const meta = [emojiOf(c) + " " + nameOf(c)];
+  if (c.mode) meta.push(doubles ? "Doubles" : "Singles");
+  if (c.sport === "volleyball") meta.push(c.variant === "beach" ? "Beach" : "Indoor");
+  if (c.games > 1) meta.push(g.unit.charAt(0) + g.unit.slice(1).toLowerCase() + " " + m.n + " of " + c.games);
+  $("#title").textContent = meta.join(" · ");
+
+  $("#call").textContent = g.call;
+  $("#callsub").textContent = g.callsub;
+  const extra = [];
+  if (g.mid[0] !== null) extra.push("Games " + g.mid[0] + "–" + g.mid[1]);
+  if (c.games > 1) extra.push((g.unit === "SET" ? "Sets " : "Games won ") + m.won[0] + "–" + m.won[1]);
+  if (g.status) extra.push(g.status.charAt(0) + g.status.slice(1).toLowerCase());
+  $("#extra").hidden = !extra.length;
+  $("#extra").textContent = extra.join(" · ");
+  $("#gtime-l").textContent = g.unit.charAt(0) + g.unit.slice(1).toLowerCase() + " time";
+
+  const al = S.alert;
+  $("#alert").hidden = !(al && al.k === "switch");
+  $("#alert").textContent = "Switch ends";
+
+  // before the first point
+  const setup = $("#setup");
+  setup.hidden = !g.can_setup || g.over || g.layout !== "standard";
+  if (!setup.hidden) {
+    $("#setup-serve").innerHTML = [0, 1].map(t => '<button data-act="pos" data-sv="' + t + '" class="' + (g.serving === t ? "on" : "") + '">' + esc(T[t].name) + "</button>").join("");
+    const showPlayers = doubles && g.setup_label;
+    $("#setup-players").hidden = !showPlayers;
+    if (showPlayers) for (const t of [0, 1]) {
+      $("#setup-rt" + t + "-l").textContent = T[t].name + " " + g.setup_label;
+      $("#setup-rt" + t).innerHTML = T[t].players.map((p, i) => '<button data-act="pos" data-team="' + t + '" data-rt="' + i + '" class="' + (g.right[t] === i ? "on" : "") + '">' + esc(p) + "</button>").join("");
+    }
+  }
+
+  // game / set / match over
+  const over = $("#over");
+  over.hidden = !g.over;
+  if (g.over) {
+    const mw = m.winner, unit = g.unit.toLowerCase();
+    const score = [...g.scores].sort((a, b) => b - a).join("–");
+    if (m.over) {
+      const result = mw === null ? "It's a tie, " + score : esc(T[mw].name) + " win" + (c.games > 1 ? " the match " + m.won[mw] + "–" + m.won[1 - mw] : ", " + score);
+      over.innerHTML = '<div class="big">' + result + '</div>' +
+        '<div class="row"><button class="primary" data-act="rematch">Rematch</button><button data-act="newmatch">New match</button></div>';
+    } else {
+      over.innerHTML = '<div class="big">' + esc(T[g.winner].name) + " win " + unit + " " + m.n + ", " + score + '</div>' +
+        '<button class="primary" style="width:100%" data-act="nextgame">Start ' + unit + " " + (m.n + 1) + "</button>";
+    }
+  }
+
+  // game clock (timed games)
+  $("#clockcard").hidden = g.layout !== "timed" || g.over;
+  if (g.layout === "timed") {
+    const k = g.clock;
+    $("#clock-period").textContent = k.period_text + (k.tied ? " · tied" : "");
+    $("#clock-go").textContent = k.running ? "Stop clock" : "Start clock";
+    $("#clock-next").hidden = k.last_period;
+    $("#clock-ot").hidden = !k.tied;
+  }
+  $("#finish").hidden = g.layout !== "multi" || g.over;
+
+  if (g.layout === "multi") {
+    $("#teams").className = "";
+    $("#teams").innerHTML = T.map((tm, t) =>
+      '<div class="mrow c' + t + '"><span class="mn">' + esc(tm.name) + '</span>' +
+      '<button data-act="pts" data-team="' + t + '" data-n="-1"' + (g.over ? ' data-off="1"' : "") + '>−</button>' +
+      '<span class="ms num">' + esc(g.big[t]) + '</span>' +
+      '<button class="plus" data-act="pts" data-team="' + t + '" data-n="1"' + (g.over ? ' data-off="1"' : "") + '>+</button></div>').join("");
+    finishRender(g);
+    return;
+  }
+  $("#teams").className = "teams";
+
+  // team cards
+  $("#teams").innerHTML = [0, 1].map(t => {
+    const serving = g.serving === t && !g.over && g.layout === "standard";
+    const pips = c.games > 1 ? '<span class="pips">' + Array.from({length: m.need}, (_, i) => '<span class="pip' + (i < m.won[t] ? " won" : "") + '"></span>').join("") + "</span>" : "";
+    const chip = i => {
+      const isServer = serving && g.show_server && g.server_idx === i;
+      return '<span class="chip' + (isServer ? " server" : "") + '">' + esc(T[t].players[i]) + (isServer && g.server_num ? "<small>" + g.server_num + "</small>" : "") + "</span>";
+    };
+    let players;
+    if (!T[t].players.length) players = "";
+    else if (g.positions) {
+      const pos = g.positions[t];
+      const side = s => pos[s] !== undefined ? chip(pos[s]) : "";
+      players = '<div class="court"><div><span class="side">Left</span>' + side("L") + '</div><div><span class="side">Right</span>' + side("R") + "</div></div>";
+    } else {
+      players = '<div class="chips">' + T[t].players.map((_, i) => chip(i)).join("") + "</div>";
+    }
+    const e = g.effect[t];
+    const badge = g.badge[t] ? '<span class="badge">' + esc(g.badge[t]) + "</span>" : "";
+    const tagText = {shuffleboard: "HAMMER", airhockey: "PUCK"}[m.sport] || "SERVE";
+    const tag = serving && !g.show_server ? '<span class="serve-tag">' + tagText + "</span>" : "";
+    const sub = g.mid[t] !== null ? '<div class="sub">Games ' + esc(g.mid[t]) + "</div>" : "";
+    return '<div class="team t' + t + (serving ? " serving" : "") + '">' +
+      '<div class="tname"><span>' + esc(T[t].name) + "</span>" + tag + pips + "</div>" +
+      '<div class="score num">' + esc(g.big[t]) + "</div>" + sub + badge + players +
+      (g.buttons
+        ? '<div class="pts">' + g.buttons.map(n => '<button data-act="pts" data-team="' + t + '" data-n="' + n + '"' + (g.over ? ' data-off="1"' : "") + ">+" + n + "</button>").join("") + "</div>"
+        : '<button class="rally" data-act="rally" data-team="' + t + '"' + (e ? "" : ' data-off="1"') + ">" + esc(T[t].name) + " " + esc(g.verb) + "<small>" + esc(e || "") + "</small></button>") +
+      "</div>";
+  }).join("");
+  finishRender(g);
+}
+
+function finishRender(g) {
+  $("#undo-l").textContent = g.undo || "Nothing to undo";
+  $("#undo").dataset.off = g.undo ? "0" : "1";
+  renderBusy();
+  tick();
+}
+
+function clockSecs(k, now) {
+  let used = k.used + (k.running ? Math.max(0, now - k.ref_t) : 0);
+  used = Math.min(used, k.length);
+  return k.count === "down" ? k.length - used : used;
+}
+
+function fmtClock(k, secs) {
+  if (k.count === "down" && secs < 60) return (Math.floor(secs * 10) / 10).toFixed(1);
+  const s = k.count === "down" ? Math.ceil(secs - 1e-6) : Math.floor(secs);
+  return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+}
+
+function tick() {
+  if (S && S.match) {
+    const g = S.match.game;
+    const now = nowSec() + offset;
+    $("#idle").textContent = g.over ? "—" : fmtDur(now - g.last_t);
+    $("#gtime").textContent = fmtDur((g.over ? g.last_t : now) - g.start);
+    if (g.layout === "timed" && g.clock) {
+      const k = g.clock, secs = clockSecs(k, now), el = $("#clock");
+      el.textContent = fmtClock(k, secs);
+      el.className = "clock num" + (!k.running ? " stopped" : k.count === "down" && secs < 60 ? " low" : "");
+    }
+  }
+}
+setInterval(tick, 250);
+
+/* ---------------------------------------------------------------- new match */
+
+let form = null;
+
+function cfgFor(sport, from) {
+  const cfg = Object.assign({}, SPORTS[sport].defaults, {sport});
+  if (cfg.buttons) cfg.buttons = cfg.buttons.slice();
+  if (from && from.mode && cfg.mode) cfg.mode = from.mode;
+  return cfg;
+}
+
+function defaultForm() {
+  const m = S && S.match;
+  if (m) return {cfg: Object.assign({}, m.cfg), teams: blankTeams(), first: 0};
+  const last = hist && hist[0];
+  const sport = (last && last.sport) || store("sport") || "pickleball";
+  const cfg = cfgFor(sport);
+  if (last && last.sport === sport) { if (cfg.mode && last.mode) cfg.mode = last.mode; if (cfg.games !== undefined && last.games) cfg.games = last.games; }
+  return {cfg, teams: blankTeams(), first: 0};
+}
+
+function blankTeams() { return Array.from({length: 6}, () => ({name: "", players: ["", ""]})); }
+
+// Names used before, most recent first: remembered on this phone, then the match and history.
+function recentNames(kind) {
+  let names = [];
+  try { names = JSON.parse(store("recent_" + kind) || "[]"); } catch (e) { names = []; }
+  const sources = [];
+  if (S && S.match) sources.push(S.match.teams);
+  for (const h of hist || []) sources.push(h.teams);
+  for (const teams of sources) for (const t of teams) {
+    if (kind === "teams") names.push(t.name); else names.push(...t.players);
+  }
+  return [...new Set(names.filter(n => n && !/^(TEAM [A-F]|P[12])$/i.test(n)))].slice(0, 40);
+}
+
+function rememberNames(teams) {
+  for (const kind of ["teams", "players"]) {
+    const used = kind === "teams" ? teams.map(t => t.name) : teams.flatMap(t => t.players);
+    store("recent_" + kind, JSON.stringify([...new Set([...used, ...recentNames(kind)])].slice(0, 40)));
+  }
+}
+
+function openMatchForm() {
+  form = defaultForm();
+  const options = list => list.map(n => '<option value="' + esc(n) + '">').join("");
+  $("#dl-names").innerHTML = options(recentNames("teams"));
+  $("#dl-players").innerHTML = options(recentNames("players"));
+  renderMatchForm();
+  $("#dlg-match").showModal();
+}
+
+function segHTML(key, choices, val) {
+  return '<div class="seg" data-seg="' + key + '">' + choices.map(([v, l]) => '<button data-v="' + v + '" class="' + (String(v) === String(val) ? "on" : "") + '">' + esc(l) + "</button>").join("") + "</div>";
+}
+
+function renderMatchForm() {
+  const c = form.cfg, sp = sportOf(c);
+  $("#mf-sport").innerHTML = Object.entries(SPORTS).map(([k, s]) => '<button data-sport="' + k + '" class="' + (k === c.sport ? "on" : "") + '">' + s.emoji + " " + s.name + "</button>").join("");
+  let html = "", half = [];
+  const flush = () => { if (half.length) { html += '<div class="grid2">' + half.join("") + "</div>"; half = []; } };
+  for (const f of sp.fields) {
+    if (f.only && c.preset !== f.only) continue;
+    if (f.number || f.text) {
+      const val = f.text ? (c[f.k] || []).join(",") : c[f.k];
+      const input = f.number
+        ? '<input type="number" inputmode="numeric" min="' + f.number[0] + '" max="' + f.number[1] + '" data-num="' + f.k + '" value="' + esc(val) + '">'
+        : '<input type="text" inputmode="numeric" data-list="' + f.k + '" value="' + esc(val) + '">';
+      const cell = '<div class="field"><label>' + esc(f.label) + "</label>" + input + "</div>";
+      if (f.half) half.push(cell); else { flush(); html += cell; }
+      continue;
+    }
+    if (f.check) {
+      flush();
+      html += '<div class="row field"><label style="flex:3" for="mf-' + f.k + '">' + esc(f.label) + '</label><input type="checkbox" id="mf-' + f.k + '" data-check="' + f.k + '"' + (c[f.k] ? " checked" : "") + "></div>";
+      continue;
+    }
+    const cell = '<div class="field"><span class="lbl2">' + esc(f.label) + "</span>" + segHTML(f.k, f.choices, c[f.k]) + "</div>";
+    if (f.half) half.push(cell); else { flush(); html += cell; }
+  }
+  flush();
+  $("#mf-opts").innerHTML = html;
+  const np = playersFor(c), doubles = np === 2;
+  $("#mf-teams").innerHTML = Array.from({length: teamCount(c)}, (_, t) => {
+    const tm = form.teams[t];
+    const players = Array.from({length: np}, (_, i) => i);
+    const hint = i => !doubles ? "Player" : sp === SPORTS.pickleball || sp === SPORTS.badminton ? "Player " + (i + 1) + (i === 0 ? " (starts right)" : " (starts left)") : "Player " + (i + 1);
+    return '<div class="teamform c' + t + '" style="border-left-color:var(--c)"><div class="field"><label>Team ' + LETTERS[t] + ' name</label><input type="text" list="dl-names" maxlength="16" placeholder="Team ' + LETTERS[t] + '" data-tname="' + t + '" value="' + esc(tm.name) + '"></div>' +
+      '<div class="grid2">' + players.map(i => '<div class="field"><label>' + hint(i) + ' name <span class="small">(2–4 letters)</span></label><input type="text" list="dl-players" minlength="2" maxlength="4" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="e.g. MIKE" data-pl="' + t + "," + i + '" value="' + esc(tm.players[i] || "") + '"></div>').join("") + "</div></div>";
+  }).join("");
+  $("#mf-first").parentElement.hidden = c.sport === "timed" || c.sport === "misc";
+  $("#mf-first").innerHTML = [0, 1].map(t => '<button data-first="' + t + '" class="' + (form.first === t ? "on" : "") + '">' + esc(form.teams[t].name || "Team " + "AB"[t]) + "</button>").join("");
+}
+
+function readMatchForm() {
+  $$("[data-tname]").forEach(el => form.teams[+el.dataset.tname].name = el.value.trim());
+  $$("[data-pl]").forEach(el => { const [t, i] = el.dataset.pl.split(",").map(Number); form.teams[t].players[i] = el.value.trim().toUpperCase(); });
+  $$("[data-check]").forEach(el => form.cfg[el.dataset.check] = el.checked);
+  $$("[data-num]").forEach(el => { if (el.value !== "") form.cfg[el.dataset.num] = +el.value; });
+  $$("[data-list]").forEach(el => {
+    const nums = el.value.split(/[ ,]+/).map(Number).filter(n => n >= 1 && n <= 9);
+    if (nums.length) form.cfg[el.dataset.list] = [...new Set(nums)].slice(0, 4);
+  });
+}
+
+$("#dlg-match").addEventListener("click", e => {
+  const sportBtn = e.target.closest("[data-sport]");
+  const segBtn = e.target.closest("[data-seg] button");
+  const firstBtn = e.target.closest("[data-first]");
+  if (!sportBtn && !segBtn && !firstBtn) return;
+  readMatchForm();
+  if (sportBtn) { form.cfg = cfgFor(sportBtn.dataset.sport, form.cfg); store("sport", sportBtn.dataset.sport); }
+  else if (firstBtn) form.first = +firstBtn.dataset.first;
+  else {
+    const key = segBtn.parentElement.dataset.seg, v = segBtn.dataset.v;
+    form.cfg[key] = /^\d+$/.test(v) ? +v : v;
+    if (key === "preset") {  // a preset brings its own periods, length and buttons
+      const p = TIMED[v];
+      Object.assign(form.cfg, {periods: p.periods, minutes: p.minutes, count: p.count, buttons: p.buttons.slice()});
+    }
+  }
+  renderMatchForm();
+});
+$("#dlg-match").addEventListener("input", e => {
+  if (e.target.dataset.tname === undefined) return;
+  readMatchForm();
+  const b = $('[data-first="' + e.target.dataset.tname + '"]');
+  if (b) b.textContent = e.target.value || "Team " + LETTERS[+e.target.dataset.tname];
+});
+
+function playerError(name) {
+  if (name.length < 2 || name.length > 4) return "Player names must be 2–4 characters.";
+  if (!/^[\x20-\x7e]+$/.test(name)) return "Player names can only use letters, numbers and basic symbols.";
+  return null;
+}
+
+async function startMatch() {
+  readMatchForm();
+  let bad = null;
+  $$("[data-pl]").forEach(el => {
+    const err = playerError(el.value.trim());
+    el.style.borderColor = err ? "var(--danger)" : "";
+    if (err && !bad) bad = [el, err];
+  });
+  if (bad) { toast(bad[1]); bad[0].focus(); return; }
+  const np = playersFor(form.cfg);
+  const teams = form.teams.slice(0, teamCount(form.cfg)).map((t, i) => ({name: t.name || "Team " + LETTERS[i], players: t.players.slice(0, np)}));
+  const inProgress = S && S.match && !S.match.game.over && S.match.game.changes > 0;
+  if (inProgress && !confirm("End the current game? It will be saved to history as abandoned.")) return;
+  const st = await act("/api/match", {cfg: form.cfg, teams, first_serving: form.first}, false);
+  if (st) rememberNames(st.match.teams);
+  if (st) { $("#dlg-match").close(); showView("score"); }
+}
+
+/* ---------------------------------------------------------------- correct score */
+
+function openAdjust() {
+  const m = S.match, g = m.game, T = m.teams;
+  const sel = (id, opts, val) => '<select id="' + id + '">' + opts.map(([v, l]) => '<option value="' + v + '"' + (v === val ? " selected" : "") + ">" + esc(l) + "</option>").join("") + "</select>";
+  let html = "";
+  for (const f of g.adjust) {
+    if (f.type === "pair") {
+      html += '<div class="field"><span class="lbl2">' + esc(f.label) + '</span><div class="grid2">' + [0, 1].map(t =>
+        '<div><label class="small muted">' + esc(T[t].name) + '</label><input type="number" min="0" max="99" inputmode="numeric" id="adj-' + f.k + t + '" value="' + f.val[t] + '"></div>').join("") + "</div></div>";
+    } else if (f.type === "list") {
+      html += '<div class="field"><span class="lbl2">' + esc(f.label) + '</span><div class="grid2">' + T.map((tm, t) =>
+        '<div><label class="small muted">' + esc(tm.name) + '</label><input type="number" inputmode="numeric" id="adj-' + f.k + t + '" value="' + f.val[t] + '"></div>').join("") + "</div></div>";
+    } else if (f.type === "team") {
+      html += '<div class="field"><label>' + esc(f.label) + "</label>" + sel("adj-" + f.k, [[0, T[0].name], [1, T[1].name]], f.val) + "</div>";
+    } else if (f.type === "server") {
+      html += '<div class="field"><label>' + esc(f.label) + '</label><div id="adj-si-wrap" data-val="' + f.val + '"></div></div>';
+    } else if (f.type === "choice") {
+      html += '<div class="field"><label>' + esc(f.label) + "</label>" + sel("adj-" + f.k, f.options.map(o => [o, String(o)]), f.val) + "</div>";
+    } else if (f.type === "players") {
+      html += '<div class="grid2">' + [0, 1].map(t => '<div class="field"><label>' + esc(T[t].name) + " " + esc(f.label.toLowerCase()) + "</label>" + sel("adj-" + f.k + t, T[t].players.map((p, i) => [i, p]), f.val[t]) + "</div>").join("") + "</div>";
+    }
+  }
+  $("#adj-body").innerHTML = html;
+  const fillServer = () => {
+    const w = $("#adj-si-wrap"); if (!w) return;
+    const sv = +$("#adj-sv").value;
+    w.innerHTML = sel("adj-si", T[sv].players.map((p, i) => [i, p]), sv === g.serving ? g.server_idx : 0);
+  };
+  fillServer();
+  if ($("#adj-sv")) $("#adj-sv").onchange = fillServer;
+  $("#dlg-adjust").showModal();
+}
+
+async function saveAdjust() {
+  const g = S.match.game, body = {};
+  const num = id => $(id) ? +$(id).value : 0;
+  for (const f of g.adjust) {
+    if (f.type === "pair" || f.type === "players") body[f.k] = [num("#adj-" + f.k + "0"), num("#adj-" + f.k + "1")];
+    else if (f.type === "list") body[f.k] = S.match.teams.map((_, t) => num("#adj-" + f.k + t));
+    else if (f.type === "server") body.si = num("#adj-si");
+    else body[f.k] = num("#adj-" + f.k);
+  }
+  if (!("rt" in body)) body.rt = g.right;
+  const st = await act("/api/adjust", body);
+  if (st) $("#dlg-adjust").close();
+}
+
+/* ---------------------------------------------------------------- history */
+
+let hist = null;
+
+async function loadHistory() {
+  try {
+    const data = await api("GET", "/api/history");
+    hist = data.games;
+    $("#hist-count").textContent = hist.length + " of the last " + data.max + " games and sets are kept";
+    renderHistory();
+  } catch (e) { toast("Couldn't load history: " + e.message); }
+}
+
+function renderHistory() {
+  const list = $("#hist-list");
+  if (!hist.length) { list.innerHTML = '<div class="card muted">Nothing finished yet.</div>'; return; }
+  let html = "", lastMatch = null;
+  for (const h of hist) {
+    const cfg = {sport: h.sport || "pickleball", preset: h.preset, mode: h.mode};
+    const sp = sportOf(cfg);
+    if (h.match !== lastMatch) {
+      lastMatch = h.match;
+      html += '<div class="match-h">' + esc(fmtDate(h.start)) + " · " + emojiOf(cfg) + " " + esc(nameOf(cfg)) + (h.mode ? " · " + (h.mode === "doubles" ? "Doubles" : "Singles") : "") + (h.games > 1 ? " · Best of " + h.games : "") + "</div>";
+    }
+    const T = h.teams;
+    const name = t => '<span class="' + (h.winner === t ? "w" : "") + '">' + esc(T[t].name) + " " + h.score[t] + "</span>";
+    html += '<button class="game-row" data-act="game" data-id="' + h.id + '"><span class="muted small">' + sp.unit.charAt(0) + h.n + "</span>" +
+      '<span class="gs">' + T.map((_, t) => name(t)).join(" – ") + "</span>" + (h.status === "abandoned" ? '<span class="tag">abandoned</span>' : "") +
+      '<span class="muted small num">' + fmtDur(h.end - h.start) + "</span></button>";
+  }
+  list.innerHTML = html;
+}
+
+async function openGame(id) {
+  let rec;
+  try { rec = await api("GET", "/api/history/" + id); } catch (e) { toast(e.message); return; }
+  const T = rec.teams, sp = sportOf(rec.cfg);
+  $("#gd-title").textContent = T.map((t, i) => t.name + " " + rec.score[i]).join(" – ");
+  const players = T.map(t => esc(t.name) + (t.players.length ? " (" + t.players.map(esc).join(", ") + ")" : "")).join(" vs ");
+  let html = '<p class="small muted" style="margin-top:0">' + emojiOf(rec.cfg) + " " + esc(nameOf(rec.cfg)) + " · " + esc(fmtDate(rec.start)) + " · " + sp.unit + " " + rec.n + " · " + fmtDur(rec.end - rec.start) +
+    "<br>" + players + "<br>" + esc(describeCfg(rec.cfg)) +
+    (rec.status === "abandoned" ? "<br><b>Abandoned before the end</b>" : rec.winner !== null ? "<br><b>" + esc(T[rec.winner].name) + " won</b>" : "<br><b>Tie</b>") + "</p>";
+  const serving = rec.cfg.sport === "timed" || rec.cfg.sport === "misc" ? "" : ", " + esc(T[rec.first_serving].name) + " serving";
+  html += '<table class="log"><tbody><tr><td>' + fmtTime(rec.start) + "</td><td>" + sp.unit + " started" + serving + "</td><td></td></tr>";
+  for (const e of rec.events) {
+    let what;
+    const CLOCK = {cs: "Clock started", cp: "Clock stopped", cexp: "Period ended", cper: "Next period", cot: "Overtime", cend: "Game ended", fin: "Game ended"};
+    if (e.k === "r") what = esc(T[e.tm].name) + (e.n !== undefined ? " " + (e.n > 0 ? "+" : "") + e.n : " " + sp.verb + " · " + esc(e.x));
+    else if (CLOCK[e.k]) what = CLOCK[e.k];
+    else if (e.k === "cset") what = "Clock set to " + Math.floor(e.secs / 60) + ":" + String(Math.floor(e.secs % 60)).padStart(2, "0");
+    else if (e.k === "pos") what = "Starting server / positions set";
+    else if (e.k === "adj") what = "Score corrected";
+    else if (e.k === "u") what = "Undo: " + esc(e.ud);
+    else what = esc(e.k);
+    html += '<tr class="' + e.k + '"><td class="num">' + fmtTime(e.t) + "</td><td>" + what + '</td><td class="num">' + esc(e.c) + "</td></tr>";
+  }
+  html += "</tbody></table>";
+  html += '<div class="row" style="margin-top:14px"><button class="danger" data-act="delgame" data-id="' + rec.id + '">Delete</button></div>';
+  $("#gd-body").innerHTML = html;
+  $("#dlg-game").showModal();
+}
+
+async function exportAll() {
+  if (!hist) await loadHistory();
+  toast("Collecting " + hist.length + " records…");
+  const games = [];
+  for (const h of hist) { try { games.push(await api("GET", "/api/history/" + h.id)); } catch (e) { /* skip */ } }
+  const blob = new Blob([JSON.stringify({exported: new Date().toISOString(), games}, null, 1)], {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "scoreboard-history-" + new Date().toISOString().slice(0, 10) + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------------------------------------------------------------- settings */
+
+async function loadSettings() {
+  $("#speak").checked = store("speak") === "1";
+  if (S) {
+    $("#bright").value = S.brightness; $("#bright-v").textContent = S.brightness + "%";
+    $$("#panels button").forEach(b => b.classList.toggle("on", +b.dataset.v === (S.panels || 2)));
+    $("#anims").checked = S.animations !== false;
+  }
+  const base = location.origin;
+  const rows = [["Point for Team A", "/api/w/a"], ["Point for Team B", "/api/w/b"], ["Team A +2 (timed games)", "/api/w/a/2"], ["Start / stop clock", "/api/w/clock"], ["Undo", "/api/w/undo"], ["Show score", "/api/w/score"]];
+  $("#watch-urls").innerHTML = rows.map(([l, p]) => '<div class="row" style="margin:6px 0"><span style="flex:2">' + l + '</span><code style="flex:5">' + esc(base + p) + '</code><button style="flex:none;padding:6px 10px" data-act="copy" data-text="' + esc(base + p) + '">Copy</button></div>').join("") +
+    '<p class="muted">“Point” means that team won the point, rally or goal. The board applies the rules of the sport being played.</p>';
+  try {
+    const info = await api("GET", "/api/info");
+    const bits = [];
+    if (info.mode === "ap") bits.push("Using its own Wi-Fi network <b>" + esc(info.ap_ssid) + "</b>" + (info.ap_password ? " (password <b>" + esc(info.ap_password) + "</b>)" : ""));
+    else if (info.mode === "station") bits.push("Connected to <b>" + esc(info.ssid) + "</b>");
+    if (info.ip) bits.push("Address <b>http://" + esc(info.ip) + "</b>" + (info.host ? " or <b>http://" + esc(info.host) + "</b>" : ""));
+    if (!info.storage) bits.push("Storage is read-only (dev mode)");
+    $("#net-info").innerHTML = bits.join("<br>");
+    $("#ssid").value = info.wifi_ssid || "";
+  } catch (e) { $("#net-info").textContent = "Couldn't read network info."; }
+}
+
+$("#bright").addEventListener("input", e => { $("#bright-v").textContent = e.target.value + "%"; });
+$("#bright").addEventListener("change", e => act("/api/settings", {brightness: +e.target.value}, false));
+$("#anims").addEventListener("change", e => act("/api/settings", {animations: e.target.checked}, false));
+$("#speak").addEventListener("change", e => { store("speak", e.target.checked ? "1" : "0"); if (e.target.checked && "speechSynthesis" in window) speechSynthesis.speak(new SpeechSynthesisUtterance("Score announcements on")); });
+$("#panels").addEventListener("click", async e => {
+  const b = e.target.closest("button");
+  if (!b || +b.dataset.v === (S && S.panels || 2)) return;
+  const n = +b.dataset.v;
+  if (!confirm("Switch the board to " + (n === 1 ? "one panel" : "two panels") + "? It restarts to apply this; the current game is kept.")) return;
+  const st = await act("/api/settings", {panels: n}, false);
+  if (st) { $$("#panels button").forEach(x => x.classList.toggle("on", x === b)); toast("Restarting the board… reconnect in about 20 seconds."); }
+});
+
+/* ---------------------------------------------------------------- navigation & actions */
+
+function showView(v) {
+  view = v;
+  $$("nav button").forEach(b => b.classList.toggle("on", b.dataset.view === v));
+  for (const name of ["score", "history", "settings"]) $("#view-" + name).hidden = name !== v;
+  if (v === "history") loadHistory();
+  if (v === "settings") loadSettings();
+  window.scrollTo(0, 0);
+}
+$$("nav button").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
+
+document.addEventListener("click", async e => {
+  const closer = e.target.closest("[data-close]");
+  if (closer) { closer.closest("dialog").close(); return; }
+  const b = e.target.closest("[data-act]");
+  if (!b || b.disabled) return;
+  const d = b.dataset;
+  switch (d.act) {
+    case "rally": return act("/api/rally", {team: +d.team});
+    case "pts": return act("/api/rally", {team: +d.team, n: +d.n});
+    case "clock": return act("/api/clock", {action: d.a}, false);
+    case "clockset": {
+      const k = S.match.game.clock;
+      const val = prompt("Set the clock (m:ss)", fmtClock(k, clockSecs(k, nowSec() + offset)).replace(/\.\d$/, ""));
+      if (val === null) return;
+      const parts = val.trim().split(":").map(Number);
+      const secs = parts.length > 1 ? parts[0] * 60 + parts[1] : parts[0];
+      if (isNaN(secs)) return toast("Use minutes:seconds, e.g. 4:30");
+      return act("/api/clock", {action: "set", secs}, false);
+    }
+    case "finish":
+      if (!confirm("Finish this game and save it to history?")) return;
+      return act("/api/finish");
+    case "undo": return act("/api/undo");
+    case "nextgame": return act("/api/next_game");
+    case "pos": {
+      const g = S.match.game;
+      const right = g.right.slice();
+      let sv = g.serving;
+      if (d.sv !== undefined) sv = +d.sv;
+      if (d.rt !== undefined) right[+d.team] = +d.rt;
+      return act("/api/positions", {serving: sv, right});
+    }
+    case "newmatch": if (!hist) await loadHistory(); return openMatchForm();
+    case "startmatch": return startMatch();
+    case "rematch": {
+      const m = S.match;
+      return act("/api/match", {cfg: m.cfg, teams: m.teams, first_serving: 0}, false);
+    }
+    case "adjust": return openAdjust();
+    case "saveadjust": return saveAdjust();
+    case "game": return openGame(+d.id);
+    case "delgame":
+      if (!confirm("Delete this from history?")) return;
+      try { await api("DELETE", "/api/history/" + d.id); $("#dlg-game").close(); loadHistory(); } catch (err) { toast(err.message); }
+      return;
+    case "export": return exportAll();
+    case "copy":
+      try { await navigator.clipboard.writeText(d.text); toast("Copied"); } catch (err) { toast(d.text); }
+      return;
+    case "wifi":
+      try {
+        const r = await api("POST", "/api/wifi", {ssid: $("#ssid").value, password: $("#pw").value});
+        toast(r.saved ? "Saved. Restart the board to use it." : "Couldn't save (storage is read-only).");
+      } catch (err) { toast(err.message); }
+      return;
+    case "reboot":
+      if (!confirm("Restart the scoreboard now? The current game is kept.")) return;
+      try { await api("POST", "/api/reboot", {}); } catch (err) { /* it drops the connection */ }
+      toast("Restarting… reconnect in about 20 seconds.");
+      return;
+  }
+});
+
+document.addEventListener("visibilitychange", () => { if (!document.hidden) api("GET", "/api/state").then(st => { setOnline(true); setState(st); }).catch(() => setOnline(false)); });
+if (window.__INIT) {  // test hook (devserver only): render without waiting for fetch()
+  setState(window.__INIT);
+  if (window.__HIST) { hist = window.__HIST; loadHistory = async () => { $("#hist-count").textContent = hist.length + " records"; renderHistory(); }; }
+  if (window.__VIEW === "newmatch") openMatchForm();
+  else if (window.__VIEW === "adjust") openAdjust();
+  else if (window.__VIEW) showView(window.__VIEW);
+}
+poll();
+</script>
+</body>
+</html>
