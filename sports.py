@@ -119,11 +119,11 @@ def players_per_team(cfg):
     return 2 if cfg.get("mode") == "doubles" else 1
 
 
-PLAYER_MIN, PLAYER_MAX = 2, 4
+PLAYER_MIN, PLAYER_MAX = 1, 5
 
 
 def player_error(name):
-    """Why a player name isn't allowed, or None. Names are 2-4 printable ASCII characters."""
+    """Why a player name isn't allowed, or None. Names are 1-5 printable ASCII characters."""
     if not isinstance(name, str):
         return "player names are required"
     name = name.strip()
