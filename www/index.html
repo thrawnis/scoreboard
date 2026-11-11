@@ -488,10 +488,37 @@ async function poll() {
 }
 function setOnline(ok) { $("#conn").className = "dot " + (ok ? "ok" : "bad"); }
 
+/* Team colours come from the board (a fixed LED-friendly palette, matching colors.py). */
+const COLOR_PALETTE = [["Red", "FF3000"], ["Orange", "FF7000"], ["Yellow", "FFD000"], ["Green", "30FF30"],
+                       ["Cyan", "00E0FF"], ["Blue", "0090FF"], ["Purple", "A060FF"], ["Pink", "FF40FF"]];
+
+function applyColors(list) {
+  if (!Array.isArray(list)) return;
+  const root = document.documentElement.style;
+  const names = ["--a", "--b", "--c2", "--c3", "--c4", "--c5"];
+  list.forEach((hex, i) => {
+    const r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+    root.setProperty(names[i], "#" + hex);
+    root.setProperty("--on" + i, (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? "#111" : "#fff");  // readable text on it
+    if (i < 2) root.setProperty(names[i] + "-soft", "color-mix(in srgb, #" + hex + " 16%, var(--card))");
+  });
+}
+
+function renderColorPicker() {
+  const cur = S && S.colors;
+  if (!cur) { $("#colors-row").hidden = true; return; }
+  const rows = t => '<div class="swrow"><span>Team ' + LETTERS[t] + '</span>' + COLOR_PALETTE.map(([name, hex]) =>
+    '<button type="button" class="sw' + (cur[t] === hex ? " on" : "") + '" style="--sw:#' + hex + '" data-t="' + t +
+    '" data-hex="' + hex + '" aria-label="Team ' + LETTERS[t] + ' ' + name + '" title="' + name + '"></button>').join("") + '</div>';
+  $("#color-rows").innerHTML = rows(0) + rows(1) +
+    '<details><summary class="small">More teams (3–6 team games)</summary>' + [2, 3, 4, 5].map(rows).join("") + '</details>';
+}
+
 function setState(st) {
   offset = st.now - nowSec();
   const prevCall = S?.match?.game?.call + "|" + S?.match?.game?.scores;
   S = st;
+  applyColors(st.colors);
   render();
   const g = st.match?.game;
   const call = g ? g.call + "|" + g.scores : "";
