@@ -254,6 +254,15 @@ def serial_command(line):
         with open("/devmode", "w") as f:
             f.write("CIRCUITPY is writable over USB while this file exists. Delete it and restart for normal use.\n")
         microcontroller.reset()
+    if cmd == "fill":  # troubleshooting: solid colour on every pixel, e.g. to compare the two screens
+        names = {"white": 0xFFFFFF, "red": 0xFF0000, "green": 0x00FF00, "blue": 0x0000FF, "yellow": 0xFFFF00}
+        bits = arg.split()
+        try:
+            color = names.get(bits[0].lower()) if bits and bits[0].lower() in names else int(bits[0], 16)
+            panel.test_fill(color, float(bits[1]) if len(bits) > 1 else 15)
+        except (IndexError, ValueError):
+            return "usage: fill white|red|green|blue|yellow|RRGGBB [seconds]"
+        return "OK showing the colour; the scoreboard returns afterwards"
     if cmd == "reboot":
         app.flush()
         microcontroller.reset()
