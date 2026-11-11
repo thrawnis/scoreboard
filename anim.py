@@ -73,9 +73,11 @@ class Animator:
 
     # ---------------------------------------------------------------- control
 
-    def start(self, sport, team, text, level, team_color, other_color, pct, cx=None):
+    def start(self, sport, team, text, level, team_color, other_color, pct, cx=None, cy=None, oy=0, cover=False):
+        # oy: y offset of the 64x32 stage (stacked board: the scorer's panel); cover: black out the stage first
         while len(self.group):
             self.group.pop()
+        self.group.y = oy
         pal = self.pal
         for idx, color in ((WHITE, 0xFFFFFF), (DIM, 0x505050), (TEAM, team_color), (OTHER, other_color),
                            (TABLE, 0x0030A0), (BLACK, 0x000000)):
