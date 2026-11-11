@@ -616,7 +616,11 @@ class StackPanel(_Panel):
             num = self.c_num[t]
             self._text(num, " ")
             for side in ("R", "L"):
-                col = (1 if side == "R" else 0) if t else (0 if side == "R" else 1)
+                # over:   birds-eye, A faces down and B faces up, so A's right court is on the board's left
+                # mirror: the same, flipped left-right
+                # same:   every team's right court on the board's right (as if both stood at one end)
+                right_col = 1 if (self.court_mode == "same" or (self.court_mode == "over") == bool(t)) else 0
+                col = right_col if side == "R" else 1 - right_col
                 idx = v["courts"][t].get(side)
                 players = v["players"][t]
                 lbl = self.c_slots[t][col]
