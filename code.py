@@ -224,6 +224,23 @@ def serial_command(line):
     if not parts:
         return None
     cmd, arg = parts[0].lower(), (parts[1] if len(parts) > 1 else "")
+    if cmd == "color":  # color TEAM NAME (e.g. color a red / color 2 cyan), or `color reset`
+        import colors
+        bits = arg.lower().split()
+        if bits == ["reset"]:
+            body = '{"colors": null}'
+        elif len(bits) == 2 and len(bits[0]) == 1 and bits[0] in "abcdef123456":
+            pick = {n.lower(): h for n, h in colors.PALETTE}.get(bits[1])
+            slot = "abcdef".index(bits[0]) if bits[0] in "abcdef" else int(bits[0]) - 1
+            if pick is None:
+                return "colours: " + ", ".join(n.lower() for n, _ in colors.PALETTE)
+            now = colors.effective(app.meta.get("colors"))
+            now[slot] = pick
+            body = '{"colors": ["%s"]}' % '","'.join(now)
+        else:
+            return "usage: color a|b|c|d|e|f NAME   or   color reset   (" + ", ".join(n.lower() for n, _ in colors.PALETTE) + ")"
+        code, _, reply = app.handle("POST", "/api/settings", {}, body)
+        return "OK" if code == 200 else reply
     if cmd in ("point", "loss"):  # what a one-/two-button remote sends (see the remote team in Settings)
         return app.handle("POST", "/api/w/" + cmd, {}, "")[2]
     if cmd in ("a", "b", "u"):
