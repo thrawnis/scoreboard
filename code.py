@@ -209,6 +209,7 @@ HELP = """Commands:
   status               score and network
   a | b                team A / B won the rally
   point | loss         the remote's team / the other team won the rally
+  color TEAM NAME      team colour from the palette, e.g. `color a orange`; `color reset` for red/blue
   u                    undo
   api METHOD PATH [JSON]   call the web API, e.g. api GET /api/state
   snap                 dump the frame buffer (RGB565 hex rows)
