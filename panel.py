@@ -579,10 +579,12 @@ class StackPanel(_Panel):
     # One 64x64 canvas (the two panels act as a single screen), top to bottom:
     #   A's court (0-20) | games-won dots and idle timer (22-28) | the call X-Y-Z (29-42) | B's court (43-63)
     # Teams are told apart by colour, so there are no team-name rows.
-    COURT_Y = (0, 43)
-    COURT_H = 21
+    # Row 31 (the last row of the top panel) is kept empty: anything lit there echoes onto the
+    # last row of the bottom panel, so the call starts on row 32, wholly on the bottom panel.
+    COURT_Y = (0, 44)
+    COURT_HS = (21, 20)
     INFO_Y = 22
-    CALL_Y = 29
+    CALL_Y = 30  # the glyphs start two rows below the label's top
     DOT_XS = ((1, 4, 7), (61, 58, 55))  # A's games-won dots on the left, B's on the right
 
     def _build_court(self):
