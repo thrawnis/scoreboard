@@ -365,7 +365,7 @@ class App:
             "synced": self.synced,
             "storage": self.writable,
             "brightness": self.meta.get("brightness", 100),
-            "panels": self.meta.get("panels", 2),
+            "panels": 2,  # single-screen mode is disabled for now (code.py always runs the stacked board)
             "serpentine": self.meta.get("serpentine", True),
             "court": self.meta.get("court", "over"),
             "animations": self.meta.get("animations", True),
