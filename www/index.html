@@ -934,6 +934,7 @@ async function loadSettings() {
     $$("#panels button").forEach(b => b.classList.toggle("on", +b.dataset.v === (S.panels || 2)));
     $("#anims").checked = S.animations !== false;
     $("#flip").checked = S.serpentine !== false;
+    $$("#remote-team button").forEach(b => b.classList.toggle("on", +b.dataset.v === (S.remote_team === 0 ? 0 : 1)));
     $("#flip-row").hidden = S.panels === 1;
     $("#court-row").hidden = S.panels === 1;
     $$("#court button").forEach(b => b.classList.toggle("on", b.dataset.v === (S.court || "over")));
