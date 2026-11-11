@@ -225,7 +225,9 @@ ol.steps li { margin-bottom: 8px; }
       <div class="field"><label for="bright">Board brightness <span id="bright-v" class="num"></span></label>
         <input type="range" id="bright" min="5" max="100" step="5"></div>
       <div class="field"><span class="lbl2">Board size (the board restarts to apply it)</span>
-        <div class="seg" id="panels"><button data-v="1">1 panel · 64×32</button><button data-v="2">2 panels · 128×32</button></div></div>
+        <div class="seg" id="panels"><button data-v="1">1 panel · 64×32</button><button data-v="2">2 panels stacked · 64×64</button></div></div>
+      <div class="row" id="flip-row" style="margin-bottom:12px"><label for="flip" style="flex:3">Bottom panel mounted upside-down (try this if the lower half looks flipped)</label>
+        <input type="checkbox" id="flip"></div>
       <div class="row" style="margin-bottom:12px"><label for="anims" style="flex:3">Scoring animations on the board</label>
         <input type="checkbox" id="anims"></div>
       <div class="row"><label for="speak" style="flex:3">Announce the score on this phone</label>
