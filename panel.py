@@ -106,7 +106,7 @@ class _Panel:
         self.display = display
         self.small = bitmap_font.load_font("/fonts/6x10.bdf")
         self.tiny = bitmap_font.load_font("/fonts/5x7.bdf")  # player names (2-4 characters)
-        self.tiny.load_glyphs("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+        self.tiny.load_glyphs("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:.-+/ ")
         self.mid = bitmap_font.load_font("/fonts/7x14B.bdf")
         self.big = bitmap_font.load_font("/fonts/score-20.bdf")
         self.small.load_glyphs(" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:.-+/")
@@ -571,41 +571,41 @@ class StackPanel(_Panel):
         self._color(lbl, SERVER_TEXT if highlight else PLAYER)
 
     # ---------------------------------------------------------------- court diagram
-
-    COURT_Y = 12  # court top within a panel; each court is two 22x20 service courts
-    COURT_COLOR = 45  # percent of the team colour
+    # 64x64, top to bottom:  A's name row (0-7) | A's court (8-24) | the call X-Y-Z, at the net (25-38)
+    #                        | B's court (39-55) | B's name row (56-63)
+    COURT_Y = (8, 39)
+    HEAD_Y = (0, 56)
+    COURT_H = 17
+    CALL_Y = 25
 
     def _build_court(self):
         g = displayio.Group()
         W = self.W
-        self.c_names = [self._label(self.small, TEAM_COLORS[t], (0.0, 0.0), (1, self.OY[t]), g) for t in (0, 1)]
-        self.c_timer = self._label(self.small, TIMER, (1.0, 0.0), (W, 0), g)  # top panel, right
-        self.c_dots = [[self._rect(x, oy + self.DOT_Y, 2, 2, g) for x in self.DOT_X] for oy in self.OY]
-        self.c_big = [self._label(self.big, SCORE, (0.5, 1.0), (54, oy + H), g) for oy in self.OY]
-        self.c_mid = [self._label(self.mid, SCORE, (0.5, 0.5), (54, oy + 21), g) for oy in self.OY]
+        self.c_names = [self._label(self.tiny, TEAM_COLORS[t], (0.0, 0.0), (1, self.HEAD_Y[t]), g) for t in (0, 1)]
+        self.c_timer = self._label(self.tiny, TIMER, (1.0, 0.0), (W, 0), g)  # top row, right
+        self.c_dots = [[self._rect(x, hy + 3, 2, 2, g) for x in (28, 31, 34)] for hy in self.HEAD_Y]
+        # the call is four labels so the scores can wear their team's colour: X, "-", Y, "-Z"
+        self.c_call = [self._label(self.mid, 0xFFFFFF, (0.0, 0.0), (0, self.CALL_Y), g) for _ in range(4)]
         self.c_ball = []  # the sport's ball, in the server's court (one tile per team)
         self.c_ball_key = None
-        self.c_rx = []  # green frame around the receiving player
+        self.c_frames = []
         self.c_slots = []  # [team][column] player name; column 0 = left on the board
-        self.c_num = []  # server number (1 or 2), above the serving player's name
-        for t, oy in enumerate(self.OY):
-            y = oy + self.COURT_Y
-            frame, pal = self._outline(0, y, 44, 20, g)  # court outline and centre line, a dim team colour
+        self.c_num = []  # server number (1 or 2), beside the ball
+        for t, cy in enumerate(self.COURT_Y):
+            frame, pal = self._outline(0, cy, W, self.COURT_H, g)  # the team's court, in the team's colour
             frame.hidden = False
-            self._fill(pal, _scale(TEAM_COLORS[t], self.COURT_COLOR))
-            self.c_rx.append(self._outline(0, y, 22, 20, g))  # green frame around the receiver
-            self.c_slots.append([self._label(self.tiny, PLAYER, (0.5, 0.5), (11 + 22 * c, y + 10), g) for c in (0, 1)])
-            self.c_num.append(self._label(self.tiny, SERVER_NUM, (0.5, 0.5), (11, y + 4), g))
+            self.c_frames.append((frame, pal))
+            self.c_slots.append([self._label(self.tiny, PLAYER, (0.5, 0.5), (16 + 32 * c, cy + 8), g) for c in (0, 1)])
+            self.c_num.append(self._label(self.tiny, SERVER_NUM, (0.5, 0.5), (16, cy + 8), g))
         self.court_group = g
 
     def draw_court(self, v, now, second, blink_on, key):
-        """Birds-eye view with the net at the seam between the panels: each team's half of the
-        court with its players where they stand, the server framed in green, the score beside it.
-        Team A faces down and team B faces up, so a team's right-hand court is on the board's
-        left for A and on its right for B."""
+        """Birds-eye view with the net in the middle: each team's court with its players where
+        they stand (server and receiver at the baselines, partners at the net), the sport's ball
+        in the server's court, and the call X-Y-Z (serving score, receiving score, server number).
+        Team A faces down and team B faces up (see Settings for the left/right choices)."""
         if self.court_group is None:
             self._build_court()
-        self._place_icon(self.court_group, key, self.W - 9, self.OY[1] + 1)  # bottom panel, top right
         if self.c_ball_key != (key, self.pct):  # one ball tile per team, rebuilt for a new sport or brightness
             for tile in self.c_ball:
                 self.court_group.remove(tile)
@@ -616,26 +616,44 @@ class StackPanel(_Panel):
                 self.court_group.append(tile)
                 self.c_ball.append(tile)
             self.c_ball_key = (key, self.pct)
+        self._place_icon(self.court_group, key, self.W - 9, self.HEAD_Y[1])  # bottom row, right
         server = v["server"]
         srv_side = None  # which court the server is standing in (R or L)
         if server is not None:
             for sd, ix in v["courts"][server[0]].items():
                 if ix == server[1]:
                     srv_side = sd
-        for t, oy in enumerate(self.OY):
+
+        # the call, centred at the net
+        big = v["big"]
+
+        def shade(t):
+            return 0x000000 if (v["over"] and v["winner"] == t and not blink_on) else TEAM_COLORS[t]
+
+        if server is not None:
+            s = server[0]
+            segs = [(big[s], TEAM_COLORS[s]), ("-", TIMER), (big[1 - s], TEAM_COLORS[1 - s]),
+                    ("-%d" % server[2] if server[2] else "", 0xFFFFFF)]
+        else:  # game over: the final score, A first
+            segs = [(big[0], shade(0)), ("-", TIMER), (big[1], shade(1)), ("", 0xFFFFFF)]
+        x = (self.W - 7 * sum(len(text) for text, _ in segs)) // 2
+        for lbl, (text, color) in zip(self.c_call, segs):
+            self._text(lbl, text)
+            self._color(lbl, color)
+            pos = (x, self.CALL_Y)
+            if lbl.anchored_position != pos:
+                lbl.anchored_position = pos
+            x += 7 * len(text)
+
+        for t, cy in enumerate(self.COURT_Y):
             self._text(self.c_names[t], v["names"][t][:self.NAME_CHARS].upper())
-            self._color(self.c_names[t], 0x000000 if (v["over"] and v["winner"] == t and not blink_on) else TEAM_COLORS[t])
-            text = v["big"][t]
-            fits = len(text) * 15 <= 19
-            self._text(self.c_big[t], text if fits else " ")
-            self._text(self.c_mid[t], " " if fits else text)
+            self._color(self.c_names[t], shade(t))
+            self._fill(self.c_frames[t][1], TEAM_COLORS[t])
             ball = self.c_ball[t]
-            rx, rx_pal = self.c_rx[t]
             num = self.c_num[t]
-            serve_col = recv_col = None  # set once, below: never hide-then-show (the display refreshes in between)
-            cy = oy + self.COURT_Y
+            serve_col = None  # set once, below: never hide-then-show (the display refreshes in between)
             # the baseline is the end of the court away from the net: the top for A, the bottom for B
-            base_y, net_y = (cy + 5, cy + 15) if t == 0 else (cy + 15, cy + 5)
+            base_y, net_y = (cy + 5, cy + 11) if t == 0 else (cy + 11, cy + 5)
             for side in ("R", "L"):
                 # over:   birds-eye, A faces down and B faces up, so A's right court is on the board's left
                 # mirror: the same, flipped left-right
@@ -645,47 +663,32 @@ class StackPanel(_Panel):
                 idx = v["courts"][t].get(side)
                 players = v["players"][t]
                 lbl = self.c_slots[t][col]
-                y = oy + self.COURT_Y
                 # the server and the player receiving the serve (the diagonal court) stand at the
                 # baselines; everyone else is up at the net
                 active = idx is not None and server is not None and side == srv_side
-                serving = active and t == server[0]
-                receiving = active and not serving
                 self._text(lbl, players[idx] if idx is not None and idx < len(players) else " ")
                 self._color(lbl, SERVER_TEXT if active else PLAYER)
-                pos = (11 + 22 * col, base_y if active else (net_y if server is not None else cy + 10))
+                pos = (16 + 32 * col, base_y if active else (net_y if server is not None else cy + 8))
                 if lbl.anchored_position != pos:
                     lbl.anchored_position = pos
-                if serving:
+                if active and t == server[0]:
                     serve_col = col
-                elif receiving:
-                    recv_col = col
             if serve_col is None:
                 if not ball.hidden:
                     ball.hidden = True
                 self._text(num, " ")
             else:
-                # the sport's ball, with the server number beside it, at the net end of the server's court
+                # the ball, with the server number beside it, at the net end of the server's court
                 has_num = bool(server[2])
-                bx = 22 * serve_col + (3 if has_num else 7)
+                bx = 32 * serve_col + (8 if has_num else 12)
                 if ball.x != bx or ball.y != net_y - 4:
                     ball.x, ball.y = bx, net_y - 4
                 if ball.hidden:
                     ball.hidden = False
-                pos = (22 * serve_col + 16, net_y)
+                pos = (32 * serve_col + 21, net_y)
                 if num.anchored_position != pos:
                     num.anchored_position = pos
                 self._text(num, str(server[2]) if has_num else " ")
-            if recv_col is None:
-                if not rx.hidden:
-                    rx.hidden = True
-            else:
-                if rx.x != 22 * recv_col:
-                    rx.x = 22 * recv_col
-                self._fill(rx_pal, SERVER_BOX)
-                if rx.hidden:
-                    rx.hidden = False
-        for t in (0, 1):
             for i, (rect, pal) in enumerate(self.c_dots[t]):
                 rect.hidden = i >= v["need"]
                 self._fill(pal, TEAM_COLORS[t] if i < v["won"][t] else DOT_OFF)
