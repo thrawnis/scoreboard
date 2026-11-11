@@ -693,7 +693,7 @@ class StackPanel(_Panel):
                     ball.x, ball.y = bx, ball_y
                 if ball.hidden:
                     ball.hidden = False
-                pos = (32 * serve_col + 21, net_y)
+                pos = (32 * serve_col + 21, ball_y + 5)
                 if num.anchored_position != pos:
                     num.anchored_position = pos
                 self._text(num, str(server[2]) if has_num else " ")
