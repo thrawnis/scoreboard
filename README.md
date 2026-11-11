@@ -87,6 +87,15 @@ there are plain-text endpoints:
   remote's team in Settings.
 - `POST /api/w/undo`, `/api/w/clock`
 
+## Remembered players
+
+The board keeps a list of up to 30 player names (`data/roster.json`), most recently used first. Starting a
+match adds its players, and on first use the list is seeded from the current match and the history. In
+the web app's new-match form they appear as chips: tap one to put it in the next empty player spot (or in
+the spot you last tapped), tap its **×** to forget it. The list is shared by every phone.
+`GET /api/roster` returns `{"names": [...]}`; `POST /api/roster` with `{"add": "NAME"}` and/or
+`{"remove": "NAME"}` changes it.
+
 ## Remote control
 
 The Pico 2 W's own Bluetooth is not available in CircuitPython, so a Bluetooth remote cannot connect

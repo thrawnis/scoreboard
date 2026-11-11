@@ -13,9 +13,10 @@ import os
 import time
 
 import colors
-from sports import Match, clean_cfg, teams_error
+from sports import Match, clean_cfg, player_error, teams_error
 
 HISTORY_MAX = 100
+ROSTER_MAX = 30  # remembered player names
 SAVE_DELAY = 2  # seconds; coalesces bursts of taps into one flash write
 
 
@@ -87,6 +88,9 @@ class App:
                 self.match = Match(cur)
             except (KeyError, TypeError, ValueError, IndexError):
                 self.match = None
+        self.roster = _read_json(self._p("roster.json"), None)
+        if not isinstance(self.roster, list):
+            self.roster = self._seed_roster()
         self._save_meta()
 
     # ---------------------------------------------------------------- storage
@@ -106,6 +110,42 @@ class App:
 
     def _save_meta(self):
         self._write(self._p("meta.json"), self.meta)
+
+    # ---------------------------------------------------------------- remembered player names
+
+    def _seed_roster(self):
+        """First start with this feature: begin with the names already used in the current match and history."""
+        found = []
+        teams_lists = ([self.match.d["teams"]] if self.match else []) + [s.get("teams") or [] for s in self.index]
+        for teams in teams_lists:
+            for t in teams:
+                for p in t.get("players", []):
+                    if (isinstance(p, str) and player_error(p) is None and p.upper() not in ("P1", "P2")
+                            and p.upper() not in [f.upper() for f in found]):
+                        found.append(p)
+        return found[:ROSTER_MAX]
+
+    def _remember(self, names):
+        """Add player names to the front of the remembered list (most recently used first)."""
+        keep = list(self.roster)
+        for name in reversed(names):
+            if not isinstance(name, str):
+                continue
+            name = name.strip()
+            if player_error(name) is not None or name.upper() in ("P1", "P2"):
+                continue
+            keep = [name] + [k for k in keep if k.upper() != name.upper()]
+        keep = keep[:ROSTER_MAX]
+        if keep != self.roster:
+            self.roster = keep
+            self._write(self._p("roster.json"), keep)
+
+    def _forget(self, name):
+        gone = str(name).strip().upper()
+        keep = [k for k in self.roster if k.upper() != gone]
+        if keep != self.roster:
+            self.roster = keep
+            self._write(self._p("roster.json"), keep)
 
     def _new_id(self):
         gid = self.meta["next_id"]
@@ -334,6 +374,7 @@ class App:
         game_id = self._new_id()
         first = 1 if body.get("first_serving") in (1, "1", "b", "B") else 0
         self.match = Match.new(match_id, game_id, body.get("cfg"), body.get("teams"), first, self.clock())
+        self._remember([p for t in body.get("teams") or [] for p in (t.get("players") or [])])
         self.alert = None
         self._changed(save_now=True)
 
@@ -603,6 +644,16 @@ class App:
                 else:
                     self._remove(self._p("wifi.json"))
                 return js, json.dumps({"ok": True, "saved": self.writable})
+            elif path == "/api/roster":
+                # {"add": "NAME"} and/or {"remove": "NAME"} on the remembered player names
+                if "add" in body:
+                    err = player_error(body["add"])
+                    if err:
+                        raise ApiError(400, err)
+                    self._remember([body["add"]])
+                if "remove" in body:
+                    self._forget(body["remove"])
+                return js, json.dumps({"names": self.roster})
             elif path == "/api/reboot":
                 self.flush()
                 if self.reboot:
@@ -612,6 +663,8 @@ class App:
                 raise ApiError(404, "not found")
             return js, json.dumps(self.state())
 
+        if method == "GET" and path == "/api/roster":
+            return js, json.dumps({"names": self.roster})
         if method == "GET" and path == "/api/history":
             return js, json.dumps({"games": self.index, "max": HISTORY_MAX})
         if path.startswith("/api/history/"):

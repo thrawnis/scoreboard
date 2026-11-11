@@ -141,6 +141,12 @@ ol.steps li { margin-bottom: 8px; }
 .mrow button.plus { background: var(--c); color: var(--on, #fff); }
 .c0 { --c: var(--a); --on: var(--on0); } .c1 { --c: var(--b); --on: var(--on1); } .c2 { --c: var(--c2); --on: var(--on2); }
 .c3 { --c: var(--c3); --on: var(--on3); } .c4 { --c: var(--c4); --on: var(--on4); } .c5 { --c: var(--c5); --on: var(--on5); }
+/* remembered player names in the new-match form */
+.rosterwrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.rname { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 999px; background: var(--card); overflow: hidden; }
+.rname button { min-height: 0; padding: 7px 12px; border: 0; border-radius: 0; background: transparent; color: var(--ink); font-weight: 700; }
+.rname button.x { padding: 7px 11px; color: var(--muted); border-left: 1px solid var(--line); }
+.rname.used { opacity: .4; }
 /* team colour choices in Settings */
 .sw { width: 34px; height: 34px; min-height: 0; padding: 0; border-radius: 50%; border: 3px solid transparent; background: var(--sw); }
 .sw.on { border-color: var(--ink); box-shadow: 0 0 0 2px var(--card) inset; }
@@ -279,6 +285,8 @@ ol.steps li { margin-bottom: 8px; }
   <div class="dlg-body">
     <div class="field"><span class="lbl2">Sport</span><div class="sports" id="mf-sport"></div></div>
     <div id="mf-opts"></div>
+    <div class="field" id="mf-roster-field" hidden><span class="lbl2">Remembered players <span class="small">(tap a name to add it to a team, × to forget it)</span></span>
+      <div id="mf-roster" class="rosterwrap"></div></div>
     <div id="mf-teams"></div>
     <div class="field"><span class="lbl2">Serving first</span><div class="seg" id="mf-first"></div></div>
     <datalist id="dl-names"></datalist>
@@ -730,8 +738,45 @@ function rememberNames(teams) {
   }
 }
 
+/* Remembered player names live on the board, so every phone sees the same list. */
+let roster = [];
+let activeSlot = null;  // the player box last tapped: where the next remembered name goes
+
+async function loadRoster() {
+  try { roster = (await api("GET", "/api/roster")).names || []; } catch (e) { roster = []; }
+  renderRoster();
+}
+
+function renderRoster() {
+  const box = $("#mf-roster");
+  if (!box) return;
+  $("#mf-roster-field").hidden = !roster.length;
+  const used = new Set($$("[data-pl]").map(el => el.value.trim().toUpperCase()));
+  box.innerHTML = roster.map(n => '<span class="rname' + (used.has(n.toUpperCase()) ? " used" : "") + '">' +
+    '<button type="button" data-rname="' + esc(n) + '">' + esc(n.toUpperCase()) + "</button>" +
+    '<button type="button" class="x" data-rforget="' + esc(n) + '" aria-label="Forget ' + esc(n) + '">×</button></span>').join("");
+}
+
+function assignName(name) {
+  readMatchForm();
+  const np = playersFor(form.cfg), nt = teamCount(form.cfg), slots = [];
+  for (let t = 0; t < nt; t++) for (let i = 0; i < np; i++) slots.push([t, i]);
+  const taken = slots.some(([t, i]) => form.teams[t].players[i].toUpperCase() === name.toUpperCase());
+  if (taken) { toast(name.toUpperCase() + " is already on a team"); return; }
+  const empty = () => slots.find(([t, i]) => !form.teams[t].players[i]);
+  const at = activeSlot && slots.find(([t, i]) => t === activeSlot[0] && i === activeSlot[1]);
+  const target = at || empty();
+  if (!target) { toast("Every player spot is filled; tap a spot to replace its name"); return; }
+  form.teams[target[0]].players[target[1]] = name.toUpperCase();
+  const next = empty();
+  activeSlot = next ? [...next] : null;  // the following tap fills the next empty spot
+  renderMatchForm();
+}
+
 function openMatchForm() {
   form = defaultForm();
+  activeSlot = null;
+  loadRoster();
   const options = list => list.map(n => '<option value="' + esc(n) + '">').join("");
   $("#dl-names").innerHTML = options(recentNames("teams"));
   $("#dl-players").innerHTML = options(recentNames("players"));
@@ -779,6 +824,7 @@ function renderMatchForm() {
   }).join("");
   $("#mf-first").parentElement.hidden = c.sport === "timed" || c.sport === "misc";
   $("#mf-first").innerHTML = [0, 1].map(t => '<button data-first="' + t + '" class="' + (form.first === t ? "on" : "") + '">' + esc(form.teams[t].name || "Team " + "AB"[t]) + "</button>").join("");
+  renderRoster();  // greys out the names already on a team
 }
 
 function readMatchForm() {
@@ -792,6 +838,20 @@ function readMatchForm() {
   });
 }
 
+$("#mf-roster").addEventListener("click", async e => {
+  const forget = e.target.closest("[data-rforget]"), pick = e.target.closest("[data-rname]");
+  if (forget) {
+    try { roster = (await api("POST", "/api/roster", {remove: forget.dataset.rforget})).names || []; } catch (err) { toast(err.message); }
+    renderRoster();
+  } else if (pick) {
+    assignName(pick.dataset.rname);
+  }
+});
+$("#dlg-match").addEventListener("focusin", e => {
+  const box = e.target.closest && e.target.closest("[data-pl]");
+  if (box) activeSlot = box.dataset.pl.split(",").map(Number);
+});
+$("#dlg-match").addEventListener("input", renderRoster);  // names typed by hand grey out their chip
 $("#dlg-match").addEventListener("click", e => {
   const sportBtn = e.target.closest("[data-sport]");
   const segBtn = e.target.closest("[data-seg] button");
