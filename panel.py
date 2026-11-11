@@ -25,6 +25,7 @@ import vectorio
 from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text import label
 
+import colors
 import icons
 from anim import Animator
 
