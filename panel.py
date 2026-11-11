@@ -729,19 +729,14 @@ class StackPanel(_Panel):
             if serve_col is None:
                 if not ball.hidden:
                     ball.hidden = True
-                self._text(num, " ")
             else:
-                # the ball, with the server number beside it, at the net end of the server's court
-                has_num = bool(server[2])
-                bx = 32 * serve_col + (8 if has_num else 12)
+                # the ball, centred in the server's half at the net end of the court (the server
+                # number is part of the call, so there is none beside the ball)
+                bx = 32 * serve_col + 12
                 if ball.x != bx or ball.y != ball_y:
                     ball.x, ball.y = bx, ball_y
                 if ball.hidden:
                     ball.hidden = False
-                pos = (32 * serve_col + 21, ball_y + 5)
-                if num.anchored_position != pos:
-                    num.anchored_position = pos
-                self._text(num, str(server[2]) if has_num else " ")
             for i, (rect, pal) in enumerate(self.c_dots[t]):
                 rect.hidden = i >= v["need"]
                 self._fill(pal, TEAM_COLORS[t] if i < v["won"][t] else DOT_OFF)
