@@ -818,6 +818,7 @@ class StackPanel(_Panel):
         clock = v["clock"]
         for t in (0, 1):
             self._text(self.t_names[t], short_name(v["names"][t])[:self.NAME_CHARS].upper())
+            self._color(self.t_names[t], TEAM_COLORS[t])
         if v["over"]:
             self._text(self.t_clock, "FINAL")
             self._color(self.t_clock, 0xFFFFFF)
