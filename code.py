@@ -243,8 +243,10 @@ def serial_command(line):
         code, _, body = app.handle("POST", "/api/settings", {}, '{"serpentine": %s}' % ("false" if SERPENTINE else "true"))
         return "OK bottom panel %s, restarting" % ("upright" if SERPENTINE else "upside-down") if code == 200 else body
     if cmd == "panels":
-        if arg.strip() not in ("1", "2"):
-            return "usage: panels 1|2  (now %d)" % (2 if STACK else 1)
+        if arg.strip() == "1":
+            return "single-screen mode is disabled for now; the board runs as two stacked screens"
+        if arg.strip() != "2":
+            return "usage: panels 2  (single-screen mode is disabled for now)"
         code, _, body = app.handle("POST", "/api/settings", {}, '{"panels": %s}' % arg.strip())
         return "OK panels=%s, restarting" % arg.strip() if code == 200 else body
     if cmd == "devmode":
