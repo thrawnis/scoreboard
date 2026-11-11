@@ -689,8 +689,8 @@ class StackPanel(_Panel):
                 # the ball, with the server number beside it, at the net end of the server's court
                 has_num = bool(server[2])
                 bx = 32 * serve_col + (8 if has_num else 12)
-                if ball.x != bx or ball.y != net_y - 4:
-                    ball.x, ball.y = bx, net_y - 4
+                if ball.x != bx or ball.y != ball_y:
+                    ball.x, ball.y = bx, ball_y
                 if ball.hidden:
                     ball.hidden = False
                 pos = (32 * serve_col + 21, net_y)
