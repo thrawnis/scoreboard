@@ -556,6 +556,10 @@ class App:
                     self._save_meta()
                     self._changed()
                     self.reboot_due = time.monotonic() + 1.5
+                if body.get("court") in ("over", "mirror", "same"):
+                    self.meta["court"] = body["court"]  # court diagram orientation; applies at once
+                    self._save_meta()
+                    self._changed()
                 if "serpentine" in body and bool(body["serpentine"]) != self.meta.get("serpentine", True):
                     # Is the bottom panel of the stacked board mounted upside-down? Also applied at start-up.
                     self.meta["serpentine"] = bool(body["serpentine"])
