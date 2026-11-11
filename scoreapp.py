@@ -367,6 +367,7 @@ class App:
             "brightness": self.meta.get("brightness", 100),
             "panels": self.meta.get("panels", 2),
             "serpentine": self.meta.get("serpentine", True),
+            "court": self.meta.get("court", "over"),
             "animations": self.meta.get("animations", True),
             "alert": self.alert,
             "match": None,
