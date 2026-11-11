@@ -606,6 +606,13 @@ class StackPanel(_Panel):
             self.c_frames.append((frame, pal))
             self.c_slots.append([self._label(self.tiny, PLAYER, (0.5, 0.5), (16 + 32 * c, cy + 10), g) for c in (0, 1)])
             self.c_num.append(self._label(self.tiny, SERVER_NUM, (0.5, 0.5), (16, cy + 10), g))
+        # The net: the two courts' touching edges (the last row of the top screen's half of the
+        # frame buffer and the first row of the other) drawn as one white line between the teams.
+        self.c_net = []
+        for y in (0, 63):
+            rect, pal = self._rect(0, y, W, 1, g)
+            rect.hidden = False
+            self.c_net.append(pal)
         # a line down the middle of each court, in the team's colour, between its two service courts
         self.c_div = []
         for t, cy in enumerate(self.COURT_Y):
