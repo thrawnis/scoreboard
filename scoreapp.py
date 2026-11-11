@@ -473,12 +473,21 @@ class App:
 
     def _route(self, method, path, body):
         js = "application/json"
-        if path.startswith("/api/w/") and method == "POST":
+        if path.startswith("/api/w/") and (method == "POST" or path in ("/api/w/point", "/api/w/loss")):
             # Minimal endpoints for Apple Watch / Siri Shortcuts: plain-text reply.
             what = path[7:]
             try:
                 bits = what.split("/")
-                if what == "undo":
+                if what in ("point", "loss"):
+                    # For a one- or two-button remote: "point" is a rally won by the remote's team (the
+                    # Settings choice), "loss" a rally won by the other team. (GET works too, for simple
+                    # button apps.)
+                    g = self._need_match().game
+                    if self.match.n_teams != 2 or g.layout != "standard":
+                        raise ApiError(400, "the remote needs a two-team rally game")
+                    mine = 1 if self.meta.get("remote_team", 1) else 0
+                    self._event({"k": "r", "tm": mine if what == "point" else 1 - mine})
+                elif what == "undo":
                     self._event({"k": "u"})
                 elif what == "clock":
                     g = self._need_match().game
