@@ -12,6 +12,7 @@ import json
 import os
 import time
 
+import colors
 from sports import Match, clean_cfg, teams_error
 
 HISTORY_MAX = 100
