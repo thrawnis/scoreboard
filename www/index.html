@@ -971,6 +971,7 @@ async function loadSettings() {
     $("#bright").value = S.brightness; $("#bright-v").textContent = S.brightness + "%";
     $$("#panels button").forEach(b => b.classList.toggle("on", +b.dataset.v === (S.panels || 2)));
     $("#anims").checked = S.animations !== false;
+    renderColorPicker();
     $("#flip").checked = S.serpentine !== false;
     $$("#remote-team button").forEach(b => b.classList.toggle("on", +b.dataset.v === (S.remote_team === 0 ? 0 : 1)));
     $("#flip-row").hidden = S.panels === 1;
