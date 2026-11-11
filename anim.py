@@ -98,8 +98,11 @@ class Animator:
         self.t0 = time.monotonic()
         self.team_color = _scale(team_color, pct)
         self.cx = self.W // 2 if cx is None else int(cx)
+        self.cy = H // 2 if cy is None else int(cy)
+        if cover:
+            self._rect(0, 0, self.W, H, BLACK)
         self.shapes = getattr(self, "_setup_" + sport, self._setup_pickleball)()
-        cap_y = H // 2 if sport in ("foosball", "burst") else 7
+        cap_y = self.cy if sport in ("foosball", "burst") else 7
         self.caption = label.Label(self.font, text=text.upper()[:9], color=self.team_color, anchor_point=(0.5, 0.5))
         cap_x = self.cx if sport == "burst" else self.W // 2
         half = self.caption.bounding_box[2] // 2 + 1
