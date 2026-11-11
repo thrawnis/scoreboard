@@ -731,7 +731,7 @@ class StackPanel(_Panel):
                 # games above; only the server's initials below
                 self._box(t, 0, rows[0], " ", False)
                 if is_serving:
-                    self._box(t, 1, rows[1], players[server[1]], True)
+                    self._box(t, 1, rows[1], players[server[1]][:4], True)  # the box fits 4 characters
                 else:
                     self._box(t, 1, rows[1], " ", False)
             else:
