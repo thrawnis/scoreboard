@@ -627,7 +627,6 @@ class StackPanel(_Panel):
             frame.hidden = False
             self.c_frames.append((frame, pal))
             self.c_slots.append([self._label(self.tiny, PLAYER, (0.5, 0.5), (16 + 32 * c, cy + 10), g) for c in (0, 1)])
-            self.c_num.append(self._label(self.tiny, SERVER_NUM, (0.5, 0.5), (16, cy + 10), g))
         # a line down the middle of each court, in the team's colour, between its two service courts
         self.c_div = []
         for t, cy in enumerate(self.COURT_Y):
