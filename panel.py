@@ -528,7 +528,7 @@ class StackPanel(_Panel):
         if group is self._shown:
             return
         self._shown = group
-        if group is self.score_group or group is self.timed_group or group is self.multi_group:
+        if group in (self.score_group, self.timed_group, self.multi_group, self.court_group):
             self._base = group
         while len(self.stage):
             self.stage.pop()
