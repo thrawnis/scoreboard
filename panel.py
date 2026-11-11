@@ -59,8 +59,8 @@ def short_name(name):
 
 def fmt_secs(s):
     s = int(max(0, s))
-    if s >= 6000:
-        return "99+"
+    if s >= 20 * 60:  # no point counting on: after 20 minutes the timer just shows dashes
+        return "--:--"
     return "%d:%02d" % (s // 60, s % 60)
 
 
