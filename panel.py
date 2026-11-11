@@ -261,6 +261,11 @@ class _Panel:
             self.test_until = 0
             self.version = None
         self.court_mode = app.meta.get("court", "over")
+        picked = app.meta.get("colors")
+        if picked != self._colors_seen:  # team colours changed in Settings: redraw everything
+            self._colors_seen = picked
+            TEAM_COLORS[:] = colors.as_ints(picked)
+            self.version = None
         pct = app.meta.get("brightness", 100)
         if pct != self.pct:
             self.pct = pct
