@@ -611,7 +611,8 @@ class StackPanel(_Panel):
         """Birds-eye view with the net in the middle: each team's court with its players where
         they stand (server and receiver at the baselines, partners at the net), the sport's ball
         in the server's court, and the call X-Y-Z (serving score, receiving score, server number).
-        Team A faces down and team B faces up (see Settings for the left/right choices)."""
+        As the screens are wired, team B is the top court (facing down) and team A the bottom court
+        (facing up); see Settings for the left/right choices."""
         if self.court_group is None:
             self._build_court()
         if self.c_ball_key != (key, self.pct):  # one ball tile per team, rebuilt for a new sport or brightness
