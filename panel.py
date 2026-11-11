@@ -619,7 +619,7 @@ class StackPanel(_Panel):
             fits = len(text) * 15 <= 19
             self._text(self.c_big[t], text if fits else " ")
             self._text(self.c_mid[t], " " if fits else text)
-            hl, hl_pal = self.c_hl[t]
+            ball = self.c_ball[t]
             rx, rx_pal = self.c_rx[t]
             num = self.c_num[t]
             serve_col = recv_col = None  # set once, below: never hide-then-show (the display refreshes in between)
