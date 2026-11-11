@@ -20,6 +20,7 @@ import rgbmatrix
 import rtc
 import supervisor
 
+import httpfix  # noqa: F401  (a stalled web client must not freeze the board)
 from panel import make_panel
 
 # ---------------------------------------------------------------- display
