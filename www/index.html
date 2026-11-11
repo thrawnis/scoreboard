@@ -960,7 +960,7 @@ $("#panels").addEventListener("click", async e => {
   const b = e.target.closest("button");
   if (!b || +b.dataset.v === (S && S.panels || 2)) return;
   const n = +b.dataset.v;
-  if (!confirm("Switch the board to " + (n === 1 ? "one panel" : "two panels") + "? It restarts to apply this; the current game is kept.")) return;
+  if (!confirm("Switch the board to " + (n === 1 ? "one panel (64×32)" : "two stacked panels (64×64)") + "? It restarts to apply this; the current game is kept.")) return;
   const st = await act("/api/settings", {panels: n}, false);
   if (st) { $$("#panels button").forEach(x => x.classList.toggle("on", x === b)); toast("Restarting the board… reconnect in about 20 seconds."); }
 });
