@@ -951,6 +951,10 @@ async function loadSettings() {
 $("#bright").addEventListener("input", e => { $("#bright-v").textContent = e.target.value + "%"; });
 $("#bright").addEventListener("change", e => act("/api/settings", {brightness: +e.target.value}, false));
 $("#anims").addEventListener("change", e => act("/api/settings", {animations: e.target.checked}, false));
+$("#flip").addEventListener("change", async e => {
+  const st = await act("/api/settings", {serpentine: e.target.checked}, false);
+  if (st) toast("Restarting the board… reconnect in about 20 seconds.");
+});
 $("#speak").addEventListener("change", e => { store("speak", e.target.checked ? "1" : "0"); if (e.target.checked && "speechSynthesis" in window) speechSynthesis.speak(new SpeechSynthesisUtterance("Score announcements on")); });
 $("#panels").addEventListener("click", async e => {
   const b = e.target.closest("button");
