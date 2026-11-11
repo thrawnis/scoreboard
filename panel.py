@@ -297,8 +297,8 @@ class _Panel:
             self.draw_multi(v, blink_on)
             self._show(self.multi_group)
         else:
-            self.draw(v, app.clock(), second, blink_on, key)
-            self._show(self.score_group)
+            group = self.draw(v, app.clock(), second, blink_on, key)  # a layout may pick its own group
+            self._show(group or self.score_group)
 
 
 class CompactPanel(_Panel):
