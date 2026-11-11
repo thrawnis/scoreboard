@@ -584,7 +584,7 @@ class StackPanel(_Panel):
     # last row of the bottom panel, so the call starts on row 32, wholly on the bottom panel.
     COURT_Y = (0, 44)
     COURT_HS = (20, 20)
-    INFO_Y = 22
+    INFO_Y = 21
     CALL_Y = 30  # the glyphs start two rows below the label's top
     DOT_XS = ((1, 4, 7), (61, 58, 55))  # A's games-won dots on the left, B's on the right
 
