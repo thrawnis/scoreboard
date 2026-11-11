@@ -627,12 +627,14 @@ class StackPanel(_Panel):
                 y = oy + self.COURT_Y
                 serving = idx is not None and server is not None and server[0] == t and server[1] == idx
                 self._text(lbl, players[idx] if idx is not None and idx < len(players) else " ")
-                self._color(lbl, SERVER_TEXT if serving else PLAYER)
+                self._color(lbl, 0x000000 if serving else PLAYER)  # black on the green block
                 lbl.anchored_position = (11 + 22 * col, y + (14 if serving and server[2] else 10))
                 if serving:
                     hl.x = 22 * col
                     hl.hidden = False
                     self._fill(hl_pal, SERVER_BOX)
+                    num.base_color = 0x000000
+                    num.color = 0
                     if server[2]:
                         num.anchored_position = (11 + 22 * col, y + 5)
                         self._text(num, str(server[2]))
