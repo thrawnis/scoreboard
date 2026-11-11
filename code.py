@@ -45,26 +45,38 @@ PINOUTS = {
 PINOUT = "seengreat_v39"
 
 
-def _panel_count():
-    # 1 or 2 chained 64x32 panels; chosen in the web app's Settings (or serial `panels N`).
+def _meta():
     try:
         with open("/data/meta.json") as f:
-            return 1 if json.loads(f.read()).get("panels") == 1 else 2
+            return json.loads(f.read())
     except (OSError, ValueError):
-        return 2
+        return {}
 
 
-WIDTH = 64 * _panel_count()  # layout width
-# Always drive the full chain. In one-panel mode the 64-wide layout is drawn on
+# 1 or 2 chained 64x32 panels; chosen in the web app's Settings (or serial `panels N`).
+# Two panels are stacked into a 64x64 board (team A on the top panel, team B below).
+_m = _meta()
+STACK = _m.get("panels") != 1
+# Serpentine: the bottom panel is mounted upside-down (short cable from the top panel's
+# output to its input). Turn off if both panels are upright (Settings, or serial `flip`).
+SERPENTINE = _m.get("serpentine", True)
+
+WIDTH = 64  # layout width
+HEIGHT = 64 if STACK else 32
+# One-panel mode always drives the full 128-pixel chain: the 64-wide layout is drawn on
 # the left half and copied to the right half, so a second panel left connected
 # shows the same picture (sending only 64 pixels made it show stale colors).
 CHAIN = 128
-MIRROR = WIDTH < CHAIN
+MIRROR = not STACK
 
 displayio.release_displays()
 # Don't pass framebuffer= here: on CircuitPython 9.2.4 / RP2350 it hard-faults
 # into safe mode. The matrix's own buffer is readable via memoryview instead.
-matrix = rgbmatrix.RGBMatrix(width=CHAIN, height=32, bit_depth=5, doublebuffer=True, **PINOUTS[PINOUT])
+if STACK:
+    matrix = rgbmatrix.RGBMatrix(width=64, height=64, tile=2, serpentine=SERPENTINE, bit_depth=5,
+                                 doublebuffer=True, **PINOUTS[PINOUT])
+else:
+    matrix = rgbmatrix.RGBMatrix(width=CHAIN, height=32, bit_depth=5, doublebuffer=True, **PINOUTS[PINOUT])
 framebuffer = memoryview(matrix)
 display = framebufferio.FramebufferDisplay(matrix, auto_refresh=not MIRROR)
 mirror_due = 0.0
