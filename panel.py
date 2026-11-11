@@ -651,20 +651,21 @@ class StackPanel(_Panel):
                 elif receiving:
                     recv_col = col
             if serve_col is None:
-                if not hl.hidden:
-                    hl.hidden = True
+                if not ball.hidden:
+                    ball.hidden = True
                 self._text(num, " ")
             else:
-                if hl.x != 22 * serve_col:
-                    hl.x = 22 * serve_col
-                self._fill(hl_pal, SERVER_BOX)
-                if hl.hidden:
-                    hl.hidden = False
-                self._color(num, 0x000000)  # black on the green block, at the net end of it
-                pos = (11 + 22 * serve_col, net_y)
+                # the sport's ball, with the server number beside it, at the net end of the server's court
+                has_num = bool(server[2])
+                bx = 22 * serve_col + (3 if has_num else 7)
+                if ball.x != bx or ball.y != net_y - 4:
+                    ball.x, ball.y = bx, net_y - 4
+                if ball.hidden:
+                    ball.hidden = False
+                pos = (22 * serve_col + 16, net_y)
                 if num.anchored_position != pos:
                     num.anchored_position = pos
-                self._text(num, str(server[2]) if server[2] else " ")
+                self._text(num, str(server[2]) if has_num else " ")
             if recv_col is None:
                 if not rx.hidden:
                     rx.hidden = True
