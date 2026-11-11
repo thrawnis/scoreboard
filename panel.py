@@ -613,6 +613,12 @@ class StackPanel(_Panel):
             rect, pal = self._rect(0, y, W, 1, g)
             rect.hidden = False
             self.c_net.append(pal)
+        # a line down the middle of each court, in the team's colour, between its two service courts
+        self.c_div = []
+        for t, cy in enumerate(self.COURT_Y):
+            rect, pal = self._rect(W // 2, cy, 1, self.COURT_HS[t], g)
+            rect.hidden = False
+            self.c_div.append(pal)
         self.court_group = g
 
     def draw_court(self, v, now, second, blink_on, key):
