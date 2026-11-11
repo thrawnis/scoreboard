@@ -210,7 +210,8 @@ HELP = """Commands:
   u                    undo
   api METHOD PATH [JSON]   call the web API, e.g. api GET /api/state
   snap                 dump the frame buffer (RGB565 hex rows)
-  panels 1|2           number of 64x32 panels (restarts the board)
+  panels 1|2           one 64x32 panel, or two stacked into 64x64 (restarts the board)
+  flip                 toggle the bottom panel's mounting: upside-down / upright (restarts)
   devmode             restart with CIRCUITPY writable over USB (history not saved)
   reboot               restart"""
 
