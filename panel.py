@@ -583,7 +583,8 @@ class StackPanel(_Panel):
         self.c_dots = [[self._rect(x, oy + self.DOT_Y, 2, 2, g) for x in self.DOT_X] for oy in self.OY]
         self.c_big = [self._label(self.big, SCORE, (0.5, 1.0), (54, oy + H), g) for oy in self.OY]
         self.c_mid = [self._label(self.mid, SCORE, (0.5, 0.5), (54, oy + 21), g) for oy in self.OY]
-        self.c_hl = []  # green frame around the serving player's court
+        self.c_hl = []  # green block behind the serving player
+        self.c_rx = []  # green frame around the receiving player
         self.c_slots = []  # [team][column] player name; column 0 = left on the board
         self.c_num = []  # server number (1 or 2), above the serving player's name
         for t, oy in enumerate(self.OY):
