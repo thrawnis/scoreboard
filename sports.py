@@ -1359,6 +1359,7 @@ class Match:
             "serving": None if (g.over or g.layout != "standard") else g.serving,
             "names": [t["name"] for t in teams],
             "players": [t["players"] for t in teams],
+            "courts": g.positions() if g.courts else None,  # who stands on each team's R / L court
             "doubles": g.doubles,
             "status": g.status(),
             "over": g.over,
