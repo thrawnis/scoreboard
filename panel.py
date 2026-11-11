@@ -590,7 +590,7 @@ class StackPanel(_Panel):
     def _build_court(self):
         g = displayio.Group()
         W = self.W
-        self.c_timer = self._label(self.tiny, TIMER, (0.5, 0.0), (W // 2, self.INFO_Y), g)
+        self.c_timer = self._label(self.small, TIMER, (0.5, 0.0), (W // 2, self.INFO_Y), g)  # 6x10: wider than 5x7
         self.c_dots = [[self._rect(x, self.INFO_Y + 2, 2, 2, g) for x in xs] for xs in self.DOT_XS]
         # the call is four labels so the scores can wear their team's colour: X, "-", Y, "-Z"
         self.c_call = [self._label(self.mid, 0xFFFFFF, (0.0, 0.0), (0, self.CALL_Y), g) for _ in range(4)]
