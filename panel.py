@@ -18,6 +18,7 @@
 # "Switch ends", scoring animations and the start-up screen take over the display
 # (a scoring animation plays on the scorer's own panel).
 
+import gc
 import time
 
 import displayio
@@ -533,6 +534,12 @@ class StackPanel(_Panel):
         self._shown = None
         self._base = None  # last scoreboard layout shown (what an animation plays over)
         self.court_group = None  # court diagram (pickleball, badminton), built on first use
+        self.start_group = None  # the Wi-Fi details shown before a match, built on first use
+        # A full-screen black layer under everything. Changing it (see _show) makes the display redraw the
+        # whole screen, so nothing of the previous layout is left behind when the next one is sparse.
+        bg_pal = displayio.Palette(1)
+        bg_pal[0] = 0x000000
+        self._bg = vectorio.Rectangle(pixel_shader=bg_pal, width=self.W, height=64, x=0, y=0)
         display.root_group = self.stage
         # centre the full-screen layouts on the taller board
         self.msg_top.anchored_position = (32, 14)
@@ -568,9 +575,12 @@ class StackPanel(_Panel):
             self._base = group
         while len(self.stage):
             self.stage.pop()
+        self.stage.append(self._bg)
         if group is self.anim.group and self._base is not None:
             self.stage.append(self._base)
         self.stage.append(group)
+        self._bg.hidden = True  # hide-then-show marks the whole screen for redrawing
+        self._bg.hidden = False
 
     def _is_shown(self, group):
         return self._shown is group
@@ -584,14 +594,33 @@ class StackPanel(_Panel):
     # ---------------------------------------------------------------- start-up
 
     def start_screen(self, net, step):
-        if net.get("mode") == "ap":
-            pairs = [("WI-FI", net["ap_ssid"]), ("PASSWORD", net["ap_password"]), ("OPEN", net["ip"])]
-        elif net.get("mode") == "station":
-            pairs = [("OPEN", net["ip"])]
+        """Shown until a match starts: how to join the scoreboard, all at once in the small font. The
+        password is masked after its first character. Every line sits wholly on one screen: nothing may
+        cross the middle of the canvas, where the two screens meet."""
+        if self.start_group is None:
+            # The smallest font (4x6, public domain), with lower-case letters and "*": the Wi-Fi name and
+            # the masked password are shown exactly as written. Loaded only now, because RAM is tight at start-up.
+            gc.collect()
+            micro = bitmap_font.load_font("/fonts/4x6.bdf")
+            micro.load_glyphs("".join(chr(c) for c in range(32, 127)))
+            g = displayio.Group()
+            # No headings: the title and the network name on the screen that shows them (canvas rows
+            # 32-63), the password and the address on the other, each pair centred on its screen.
+            self.s_title = self._label(micro, ALERT, (0.5, 0.0), (32, 40), g)
+            self.s_lines = [self._label(micro, 0xFFFFFF, (0.5, 0.0), (32, y), g) for y in (51, 7, 18)]
+            self.start_group = g
+        mode = net.get("mode")
+        if mode == "ap":
+            password = net.get("ap_password") or ""
+            lines = [net.get("ap_ssid") or "", password[:1] + "*" * (len(password) - 1), net.get("ip") or ""]
+        elif mode == "station":
+            lines = [net.get("ssid") or "", "", net.get("ip") or ""]
         else:
-            pairs = [("NO WI-FI", "")]
-        top, bottom = pairs[step % len(pairs)]
-        self.message(small_top=top, small=bottom.upper()[:10], top_color=0xFFC800)
+            lines = ["NO WI-FI", "", ""]
+        self._text(self.s_title, "SCOREBOARD")
+        for lbl, text in zip(self.s_lines, lines):
+            self._text(lbl, text[:16])  # 16 characters fit across the screen
+        self._show(self.start_group)
 
     # ---------------------------------------------------------------- standard layout
 

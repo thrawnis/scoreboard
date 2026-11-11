@@ -32,6 +32,8 @@ Top to bottom as you see it: the score call, team B's court (blue), team A's cou
   with the digits in the team colours. Left/right can be set in Settings.
 - Other sports use the standard stacked layout, the timed-game layout, or the multi-team layout.
 - Scoring animations play on the scorer's half. Player names are 1-5 characters.
+- **Start screen** (no match running): the Wi-Fi name, the password masked after its first character, and
+  the IP address, in the smallest font (4x6), so you can join without opening anything.
 
 Sports: pickleball, tennis, badminton, ping pong, volleyball, racquetball, foosball, air hockey, shuffleboard,
 timed games (basketball, soccer, hockey, football, custom) and a generic 2-6 team scorer.
@@ -47,7 +49,7 @@ timed games (basketball, soccer, hockey, football, custom) and a generic 2-6 tea
 | `scoreapp.py` | Match state, saving, and the HTTP API |
 | `www/index.html` | The web app |
 | `boot.py` | Chooses whether the drive is writable over USB (see below) |
-| `fonts/` | 5x7, 6x10, 7x14 bold and the large score digits |
+| `fonts/` | 4x6 (public domain X11 font, ASCII only), 5x7, 6x10, 7x14 bold and the large score digits |
 
 Needed CircuitPython libraries (in `lib/`): `adafruit_bitmap_font`, `adafruit_display_text`,
 `adafruit_httpserver`, `adafruit_ticks`.
