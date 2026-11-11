@@ -30,7 +30,9 @@ from anim import Animator
 
 H = 32  # height of one 64x32 panel
 
-TEAM_COLORS = (0xFF3000, 0x0090FF, 0x30FF30, 0xFFD000, 0xFF40FF, 0x00E0FF)  # misc uses up to 6
+# The six team colours (misc games use up to 6). Chosen in Settings (colors.py); red and blue by default.
+# Updated in place whenever the setting changes, so everything that reads it picks the change up.
+TEAM_COLORS = colors.as_ints(None)
 SCORE = 0xFFC800
 TIMER = 0xC8E8FF  # idle timer: a pale cyan-white, easy to tell from the team colours
 NET = 0xFFFFFF  # the net: a white line where the two teams' courts meet
