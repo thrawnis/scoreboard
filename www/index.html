@@ -234,6 +234,9 @@ ol.steps li { margin-bottom: 8px; }
         <input type="range" id="bright" min="5" max="100" step="5"></div>
       <div class="field"><span class="lbl2">Board size (the board restarts to apply it)</span>
         <div class="seg" id="panels"><button data-v="1" disabled title="Disabled for now" style="opacity:.4;cursor:not-allowed">1 panel · 64×32 (disabled)</button><button data-v="2">2 panels stacked · 64×64</button></div></div>
+      <div class="field" id="colors-row"><span class="lbl2">Team colours (shown on the board and here)</span>
+        <div id="color-rows"></div>
+        <button type="button" id="colors-reset" class="small" style="margin-top:6px">Reset to red and blue</button></div>
       <div class="field" id="court-row"><span class="lbl2">Court view on the board (pickleball, badminton): which side each team's right-hand court is drawn on</span>
         <div class="seg" id="court"><button data-v="over">From above</button><button data-v="mirror">From above, mirrored</button><button data-v="same">Right court always on right</button></div></div>
       <div class="field"><span class="lbl2">Remote button: the big button scores a point for this team, the small button a point for the other</span>
