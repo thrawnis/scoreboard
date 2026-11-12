@@ -16,7 +16,7 @@ import time
 import colors
 from sports import SPORTS, Match, clean_cfg, player_error, teams_error
 
-HISTORY_MAX = 100
+HISTORY_MAX = 20  # games kept in the history; the list is held in RAM, so keep it short
 ROSTER_MAX = 30  # remembered player names
 SAVE_DELAY = 2  # seconds; coalesces bursts of taps into one flash write
 
@@ -86,6 +86,8 @@ class App:
         self.index = _read_json(self._p("index.json"), None)
         if self.index is None:
             self.index = self._rebuild_index()
+        if self._trim_history():  # e.g. a board updated from when 100 games were kept
+            self._write(self._p("index.json"), self.index)
         self.match = None
         cur = _read_json(self._p("current.json"), None)
         if cur and (cur.get("cfg") or {}).get("sport", "pickleball") not in SPORTS:
@@ -176,7 +178,7 @@ class App:
                 if rec:
                     index.append(self._summary(rec))
         index.sort(key=lambda s: s["id"], reverse=True)
-        return index[:HISTORY_MAX]
+        return index  # _trim_history() drops what's beyond HISTORY_MAX, files included
 
     @staticmethod
     def _summary(rec):
@@ -224,10 +226,18 @@ class App:
         self.index = [s for s in self.index if s["id"] != rec["id"]]
         self.index.insert(0, self._summary(rec))
         self.index.sort(key=lambda s: s["id"], reverse=True)
+        self._trim_history()
+        self._write(self._p("index.json"), self.index)
+
+    def _trim_history(self):
+        """Keep only the newest HISTORY_MAX games, deleting the older files. Returns whether anything went
+        (the caller saves index.json)."""
+        if len(self.index) <= HISTORY_MAX:
+            return False
         for old in self.index[HISTORY_MAX:]:
             self._remove(self._game_path(old["id"]))
         self.index = self.index[:HISTORY_MAX]
-        self._write(self._p("index.json"), self.index)
+        return True
 
     def _delete_record(self, gid):
         self._remove(self._game_path(gid))

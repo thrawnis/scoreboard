@@ -87,6 +87,11 @@ there are plain-text endpoints:
   remote's team in Settings.
 - `POST /api/w/undo`, `/api/w/clock`
 
+## History
+
+The board keeps the last 20 finished or abandoned games (sets, in tennis and volleyball), each with its
+full change log, in `data/games/`. Older ones are deleted. The list is held in RAM, which is why it's short.
+
 ## Remembered players
 
 The board keeps a list of up to 30 player names (`data/roster.json`), most recently used first. Starting a

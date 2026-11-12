@@ -14,6 +14,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import colors  # noqa: E402
+import scoreapp  # noqa: E402
 from scoreapp import ROSTER_MAX, App  # noqa: E402
 
 DOUBLES = {"sport": "pickleball", "mode": "doubles"}
@@ -206,6 +207,37 @@ class Storage(Board):
         os.remove(os.path.join(self.dir, "meta.json"))
         again = App(self.dir)
         self.assertGreater(again.meta["next_id"], max(used))
+
+
+class History(Board):
+    def play_games(self, count):
+        for i in range(count):
+            self.start()
+            self.rally(0)
+            self.ok("POST", "/api/end_match", {})  # saved to the history (as abandoned)
+
+    def games_on_disk(self):
+        return sorted(os.listdir(os.path.join(self.dir, "games")))
+
+    def test_only_the_last_twenty_games_are_kept(self):
+        self.play_games(25)
+        self.assertEqual(len(self.app.index), scoreapp.HISTORY_MAX)
+        self.assertEqual(scoreapp.HISTORY_MAX, 20)
+        self.assertEqual(len(self.games_on_disk()), 20)
+        ids = [s["id"] for s in self.app.index]
+        self.assertEqual(ids, sorted(ids, reverse=True))  # newest first: the oldest five went
+
+    def test_a_longer_history_is_trimmed_at_start_up(self):
+        saved = scoreapp.HISTORY_MAX
+        scoreapp.HISTORY_MAX = 100  # as before this limit existed
+        try:
+            self.play_games(24)
+        finally:
+            scoreapp.HISTORY_MAX = saved
+        self.assertEqual(len(self.games_on_disk()), 24)
+        again = App(self.dir)
+        self.assertEqual(len(again.index), 20)
+        self.assertEqual(len(self.games_on_disk()), 20)
 
 
 class RemovedSports(Board):
