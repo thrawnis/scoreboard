@@ -763,6 +763,8 @@ function renderRoster() {
   const box = $("#mf-roster");
   if (!box) return;
   $("#mf-roster-field").hidden = !roster.length;
+  // Typing suggestions come from the same list, so a forgotten name stops being suggested too.
+  $("#dl-players").innerHTML = roster.map(n => '<option value="' + esc(n) + '">').join("");
   const used = new Set($$("[data-pl]").map(el => el.value.trim().toUpperCase()));
   box.innerHTML = roster.map(n => '<span class="rname' + (used.has(n.toUpperCase()) ? " used" : "") + '">' +
     '<button type="button" data-rname="' + esc(n) + '">' + esc(n.toUpperCase()) + "</button>" +
@@ -791,7 +793,6 @@ function openMatchForm() {
   loadRoster();
   const options = list => list.map(n => '<option value="' + esc(n) + '">').join("");
   $("#dl-names").innerHTML = options(recentNames("teams"));
-  $("#dl-players").innerHTML = options(recentNames("players"));
   renderMatchForm();
   $("#dlg-match").showModal();
 }
