@@ -101,6 +101,16 @@ the spot you last tapped), tap its **×** to forget it. The list is shared by ev
 The Pico 2 W's own Bluetooth is not available in CircuitPython, so a Bluetooth remote cannot connect
 directly. A Wi-Fi button or a small second board that calls `/api/w/point` and `/api/w/loss` works.
 
+## Tests
+
+The scoring rules, the app, the API and the storage are plain Python, so they're tested on the computer:
+
+```
+python3 -m unittest discover -s tests
+```
+
+The display code needs the board and isn't covered. `tests/` isn't copied to the Pico.
+
 ## Troubleshooting
 
 - **Safe mode / blank display:** a soft reboot does not leave safe mode; use a hard reset or replug.
