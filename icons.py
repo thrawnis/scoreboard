@@ -144,16 +144,6 @@ ICONS = {
         "W......W",
         ".W....W.",
         "..WWWW..")),
-    # plus and minus
-    "misc": ({"G": 0x30FF30, "R": 0xFF3000}, (
-        "..G.....",
-        "..G.....",
-        "GGGGG...",
-        "..G.....",
-        "..G.....",
-        "........",
-        "...RRRRR",
-        "........")),
 }
 
 # Short names for the start-of-match splash (at most 10 characters for one panel).
@@ -161,7 +151,7 @@ NAMES = {
     "pickleball": "PICKLEBALL", "tennis": "TENNIS", "badminton": "BADMINTON", "pingpong": "PING PONG",
     "volleyball": "VOLLEYBALL", "racquetball": "RACQUET", "foosball": "FOOSBALL", "airhockey": "AIR HOCKEY",
     "shuffleboard": "SHUFFLE", "timed_basketball": "BASKETBALL", "timed_soccer": "SOCCER",
-    "timed_hockey": "HOCKEY", "timed_football": "FOOTBALL", "timed_custom": "GAME CLOCK", "misc": "SCORES",
+    "timed_hockey": "HOCKEY", "timed_football": "FOOTBALL", "timed_custom": "GAME CLOCK",
 }
 
 
@@ -173,8 +163,8 @@ def icon_key(cfg):
 
 
 def make(key, pct=100):
-    """A TileGrid showing the icon (falls back to the misc icon)."""
-    colors, rows = ICONS.get(key, ICONS["misc"])
+    """A TileGrid showing the icon (falls back to the pickleball icon)."""
+    colors, rows = ICONS.get(key, ICONS["pickleball"])
     legend = list(colors)
     bitmap = displayio.Bitmap(8, 8, len(legend) + 1)
     palette = displayio.Palette(len(legend) + 1)

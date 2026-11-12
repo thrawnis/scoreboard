@@ -7,17 +7,16 @@
 # change history is kept.
 #
 # Event kinds ("k"):
-#   r     point/rally won by team "tm" (points games: "n" points, may be negative in misc)
+#   r     point/rally won by team "tm" (timed games: "n" points)
 #   pos   before the first point: serving team "sv", per-team player choice "rt"
 #   adj   manual correction (fields depend on the sport, see adjust_spec)
-#   fin   finish a game that has no natural end (misc)
 #   u     undo the most recent undoable event still in effect
 # Game clock (timed games; time passing can't be undone, so undo skips these):
 #   cs start, cp stop, cset set to "secs", cexp period ran out, cper next period, cot overtime
 #   cend  end the game now (undoable)
 
 SPORTS = ("pickleball", "tennis", "badminton", "pingpong", "volleyball", "racquetball",
-          "foosball", "airhockey", "shuffleboard", "timed", "misc")
+          "foosball", "airhockey", "shuffleboard", "timed")
 
 DEFAULTS = {
     "pickleball": {"mode": "doubles", "scoring": "sideout", "points": 11, "win_by": 2, "games": 1, "switch_ends": True},
@@ -30,7 +29,6 @@ DEFAULTS = {
     "airhockey": {"mode": "singles", "points": 7, "win_by": 1, "games": 1},
     "shuffleboard": {"mode": "singles", "points": 15, "games": 1},
     "timed": {"preset": "basketball", "periods": 4, "minutes": 12, "count": "down", "buttons": [1, 2, 3], "games": 1},
-    "misc": {"teams": 2, "games": 1},
 }
 
 TIMED_PRESETS = {
@@ -71,7 +69,7 @@ def clean_cfg(raw):
     for key, lo, hi in (("points", 1, 99), ("win_by", 1, 5), ("set_games", 1, 9)):
         if key in cfg and key in raw:
             cfg[key] = max(lo, min(hi, int(raw[key])))
-    if sport not in ("timed", "misc") and raw.get("games") in (1, 3, 5, 7):
+    if sport != "timed" and raw.get("games") in (1, 3, 5, 7):
         cfg["games"] = raw["games"]
     for key in ("switch_ends", "no_ad", "final_tb"):
         if key in cfg and key in raw:
@@ -101,18 +99,16 @@ def clean_cfg(raw):
                         clean.append(v)
                 if clean:
                     cfg["buttons"] = clean
-    if sport == "misc":
-        cfg["teams"] = max(2, min(6, int(raw.get("teams", 2))))
     return cfg
 
 
 def team_count(cfg):
-    return cfg.get("teams", 2) if cfg.get("sport") == "misc" else 2
+    return 2  # every sport is two teams (the generic 2-6 team scorer was removed)
 
 
 def players_per_team(cfg):
     sport = cfg.get("sport", "pickleball")
-    if sport in ("timed", "misc"):
+    if sport == "timed":
         return 0
     if sport == "volleyball":
         return 2 if cfg.get("variant") == "beach" else 0
@@ -192,7 +188,7 @@ class BaseGame:
     courts = False  # tracks left/right court positions (court diagram)
     setup_label = "serves first"  # per-team player choice before the first point (doubles)
     show_server = True  # highlight the server's name
-    layout = "standard"  # panel layout: standard, timed or multi
+    layout = "standard"  # panel layout: standard or timed
     buttons = None  # point values for "+N" buttons instead of a single "won rally" button
     allow_minus = False
     # Attributes that make up the scoring state (used to preview a point without applying it).
@@ -1078,67 +1074,6 @@ class TimedGame(BaseGame):
         return [{"k": "s", "type": "pair", "label": "Score", "val": list(self.scores)}]
 
 
-# ---------------------------------------------------------------- misc
-
-
-class MiscGame(BaseGame):
-    """Any number of teams (2-6), scores adjusted by hand with + and -."""
-
-    verb = "scored"
-    layout = "multi"
-    setup_label = None
-    show_server = False
-    buttons = [1]
-    allow_minus = True
-
-    def __init__(self, cfg, final_game, start_t, serving=0, right=(0, 0)):
-        self.ended = False
-        BaseGame.__init__(self, cfg, final_game, start_t, serving, right)
-
-    @property
-    def over(self):
-        return self.ended
-
-    def _score(self, e):
-        n = int(e.get("n", 1))
-        if n == 0 or not -10 <= n <= 10:
-            return "adjust by 1 to 10 points"
-        t = e["tm"]
-        self.scores[t] = max(-999, min(9999, self.scores[t] + n))
-        self.scored = t if n > 0 else None
-        self.points_scored = n
-        return None
-
-    def _other(self, e):
-        if e.get("k") == "fin":
-            if self.ended:
-                return "game is over"
-            self.ended = True
-            self.winner = _leader(self.scores)
-            return None
-        return "not available in this sport"
-
-    def call(self):
-        return "-".join(str(s) for s in self.scores)
-
-    def serve_text(self, teams):
-        return "Scored by hand"
-
-    def effect(self, t):
-        return None
-
-    def point_caption(self, e):
-        return "+%d" % self.points_scored
-
-    def _adjust(self, e):
-        vals = e["s"]
-        self.scores = [_int(vals[i], -999, 9999) for i in range(self.n)]
-        return None
-
-    def adjust_spec(self):
-        return [{"k": "s", "type": "list", "label": "Scores", "val": list(self.scores)}]
-
-
 GAMES = {
     "pickleball": PickleballGame,
     "tennis": TennisSet,
@@ -1150,7 +1085,6 @@ GAMES = {
     "airhockey": AirHockeyGame,
     "shuffleboard": ShuffleboardGame,
     "timed": TimedGame,
-    "misc": MiscGame,
 }
 
 

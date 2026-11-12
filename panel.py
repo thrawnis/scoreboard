@@ -27,7 +27,7 @@ from anim import Animator
 
 H = 32  # height of one 64x32 panel
 
-# The six team colours (misc games use up to 6). Chosen in Settings (colors.py); red and blue by default.
+# The two team colours, chosen in Settings (colors.py); red and blue by default.
 # Updated in place whenever the setting changes, so everything that reads it picks the change up.
 TEAM_COLORS = colors.as_ints(None)
 SCORE = 0xFFC800
@@ -127,8 +127,6 @@ class _Panel:
         self.test_group = None
         self.score_group = displayio.Group()
         self.timed_group = None  # built on first use
-        self.multi_group = None
-        self.multi_n = None
         self.anim = Animator(self.W, self.mid)
         self.icon = None  # (key, TileGrid) - one icon, moved between layouts
         self.icon_parent = None
@@ -154,12 +152,6 @@ class _Panel:
         self._labels.append(lbl)
         (group if group is not None else self.score_group).append(lbl)
         return lbl
-
-    def _drop_labels(self, labels):
-        """Stop tracking the labels of a layout that's being replaced (they'd stay in memory otherwise).
-        Labels are unhashable, so compare by identity."""
-        gone = [lbl for lbl in labels if lbl is not None]
-        self._labels = [lbl for lbl in self._labels if not any(lbl is g for g in gone)]
 
     def _rect(self, x, y, w, h, group=None):
         pal = displayio.Palette(1)
@@ -280,9 +272,8 @@ class _Panel:
             self.celebrated = c["n"]
             if app.meta.get("animations", True) and app.match:
                 t = c["tm"]
-                n = c.get("teams", 2)
-                other = TEAM_COLORS[1 - t] if n == 2 else 0xFFFFFF
-                cx, cy, oy, cover = self._anim_area(t, n)
+                other = TEAM_COLORS[1 - t]
+                cx, cy, oy, cover = self._anim_area(t)
                 self.anim.start(c["sport"], t, c["text"], c["level"], TEAM_COLORS[t], other, self.pct, cx, cy, oy, cover)
         if self.anim.active:
             if self.anim.step():
@@ -326,9 +317,6 @@ class _Panel:
         if v["layout"] == "timed":
             self.draw_timed(v, key, blink_on)
             self._show(self.timed_group)
-        elif v["layout"] == "multi":
-            self.draw_multi(v, blink_on)
-            self._show(self.multi_group)
         else:
             group = self.draw(v, app.clock(), second, blink_on, key)  # a layout may pick its own group
             self._show(group or self.score_group)
@@ -394,7 +382,7 @@ class StackPanel(_Panel):
         if group is self._shown:
             return
         self._shown = group
-        if group in (self.score_group, self.timed_group, self.multi_group, self.court_group):
+        if group in (self.score_group, self.timed_group, self.court_group):
             self._base = group
         while len(self.stage):
             self.stage.pop()
@@ -408,11 +396,8 @@ class StackPanel(_Panel):
     def _is_shown(self, group):
         return self._shown is group
 
-    def _anim_area(self, t, n):
-        if n > 2:  # misc with 3+ teams: a burst over that team's cell
-            x, y, w, h = self._cells(n)[t]
-            return x + w // 2, y + h // 2, 0, False
-        return None, None, self.OY[t], True  # the scorer's panel
+    def _anim_area(self, t):
+        return None, None, self.OY[t], True  # the scorer's half
 
     # ---------------------------------------------------------------- start-up
 
@@ -693,63 +678,3 @@ class StackPanel(_Panel):
             self._text(self.t_mid[t], " " if big_ok else text)
             self._color(self.t_big[t], 0x000000 if off else SCORE)
             self._color(self.t_mid[t], 0x000000 if off else SCORE)
-
-    # ---------------------------------------------------------------- misc: 2-6 teams
-
-    @staticmethod
-    def _cells(n):
-        """(x, y, w, h) of each team's cell: 1 per row for 2, then a 2-wide grid."""
-        if n <= 2:
-            cols, cw, ch = 1, 64, 32
-        elif n <= 4:
-            cols, cw, ch = 2, 32, 32
-        else:
-            cols, cw, ch = 2, 32, 21
-        return [((i % cols) * cw, (i // cols) * ch, cw, ch) for i in range(n)]
-
-    def _build_multi(self, n):
-        if self.multi_group is not None:  # rebuilt for a new team count: let the old layout be freed
-            self._drop_labels(self.m_names + self.m_big + self.m_mid)
-        g = displayio.Group()
-        cells = self._cells(n)
-        self.m_names, self.m_big, self.m_mid = [], [], []
-        for i, (x, y, w, h) in enumerate(cells):
-            cx = x + w // 2
-            self.m_names.append(self._label(self.tiny, TEAM_COLORS[i], (0.5, 0.0), (cx, y + 1), g))
-            if h == 32:
-                self.m_big.append(self._label(self.big, TEAM_COLORS[i], (0.5, 1.0), (cx, y + h), g))
-                self.m_mid.append(self._label(self.mid, TEAM_COLORS[i], (0.5, 0.5), (cx, y + 20), g))
-            else:  # three rows: the 14-pixel font only
-                self.m_big.append(None)
-                self.m_mid.append(self._label(self.mid, TEAM_COLORS[i], (0.5, 1.0), (cx, y + h), g))
-        # thin dividers between the cells
-        lines = set()
-        for x, y, w, h in cells:
-            if x:
-                lines.add((x - 1, 0, 1, 64))
-            if y:
-                lines.add((0, y - 1, 64, 1))
-        for x, y, w, h in lines:
-            rect, pal = self._rect(x, y, w, h, g)
-            rect.hidden = False
-            self._fill(pal, 0x282828)
-        self.multi_group = g
-        self.multi_n = n
-        self.multi_cells = cells
-
-    def draw_multi(self, v, blink_on):
-        n = len(v["big"])
-        if self.multi_group is None or self.multi_n != n:
-            self._build_multi(n)
-        for i, (x, y, w, h) in enumerate(self.multi_cells):
-            self._text(self.m_names[i], short_name(v["names"][i]).upper()[:max(1, (w - 2) // 5)])
-            self._color(self.m_names[i], TEAM_COLORS[i])
-            text = v["big"][i]
-            fits_big = self.m_big[i] is not None and len(text) * 15 <= w - 2
-            off = v["over"] and v["winner"] == i and not blink_on
-            color = 0x000000 if off else TEAM_COLORS[i]
-            if self.m_big[i] is not None:
-                self._text(self.m_big[i], text if fits_big else " ")
-                self._color(self.m_big[i], color)
-            self._text(self.m_mid[i], " " if fits_big else text)
-            self._color(self.m_mid[i], color)

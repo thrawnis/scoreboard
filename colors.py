@@ -13,8 +13,7 @@ PALETTE = (
     ("Pink", "FF40FF"),
 )
 
-# Team A is red and team B is blue; teams 3-6 (generic scoring games) get green, yellow, pink, cyan.
-DEFAULTS = ("FF3000", "0090FF", "30FF30", "FFD000", "FF40FF", "00E0FF")
+DEFAULTS = ("FF3000", "0090FF")  # team A red, team B blue
 
 _HEXES = tuple(h for _, h in PALETTE)
 
@@ -24,9 +23,9 @@ def valid(hex_str):
 
 
 def effective(raw):
-    """The six team colours as "RRGGBB" strings: the saved choices, with defaults for anything missing."""
+    """The two team colours as "RRGGBB" strings: the saved choices, with defaults for anything missing."""
     out = []
-    for i in range(6):
+    for i in range(2):
         pick = raw[i] if isinstance(raw, list) and i < len(raw) else None
         out.append(pick.upper() if valid(pick) else DEFAULTS[i])
     return out

@@ -208,6 +208,21 @@ class Storage(Board):
         self.assertGreater(again.meta["next_id"], max(used))
 
 
+class RemovedSports(Board):
+    def test_a_saved_match_from_the_removed_team_scorer_is_dropped(self):
+        old = {"id": 5, "cfg": {"sport": "misc", "teams": 3, "games": 1},
+               "teams": [{"name": "A", "players": []}, {"name": "B", "players": []}, {"name": "C", "players": []}],
+               "start": 1.8e9, "games": [], "cur": {"id": 6, "n": 1, "start": 1.8e9, "sv": 0, "events": []}}
+        with open(os.path.join(self.dir, "current.json"), "w") as f:
+            json.dump(old, f)
+        self.assertIsNone(App(self.dir).match)
+
+    def test_asking_for_it_gives_pickleball(self):
+        self.ok("POST", "/api/match", {"cfg": {"sport": "misc", "teams": 4}, "teams": TEAMS})
+        self.assertEqual(self.app.match.sport, "pickleball")
+        self.assertEqual(self.app.match.n_teams, 2)
+
+
 class Colours(unittest.TestCase):
     def test_defaults_are_red_and_blue(self):
         self.assertEqual(colors.effective(None)[:2], ["FF3000", "0090FF"])

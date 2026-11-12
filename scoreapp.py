@@ -14,7 +14,7 @@ import os
 import time
 
 import colors
-from sports import Match, clean_cfg, player_error, teams_error
+from sports import SPORTS, Match, clean_cfg, player_error, teams_error
 
 HISTORY_MAX = 100
 ROSTER_MAX = 30  # remembered player names
@@ -88,6 +88,8 @@ class App:
             self.index = self._rebuild_index()
         self.match = None
         cur = _read_json(self._p("current.json"), None)
+        if cur and (cur.get("cfg") or {}).get("sport", "pickleball") not in SPORTS:
+            cur = None  # a match from a sport that has since been removed (e.g. the 2-6 team scorer)
         if cur:
             try:
                 self.match = Match(cur)
@@ -337,7 +339,7 @@ class App:
         n = self.match.n_teams if self.match else 2
         if isinstance(team, str):
             low = team.lower()
-            team = "abcdef".index(low) if low in "abcdef" and len(low) == 1 else (int(low) if low.isdigit() else None)
+            team = "ab".index(low) if low in ("a", "b") else (int(low) if low.isdigit() else None)
         if team in range(n):
             return team
         raise ApiError(400, "team must be 0-%d" % (n - 1))
@@ -363,8 +365,7 @@ class App:
             sport = m.sport
             if sport == "timed":
                 sport = "timed_" + m.d["cfg"].get("preset", "custom")
-            self.celebrate = {"n": n, "tm": g.scored, "level": level, "text": text, "sport": sport,
-                              "teams": m.n_teams}
+            self.celebrate = {"n": n, "tm": g.scored, "level": level, "text": text, "sport": sport}
         if m.game.switch_now:
             self.alert = {"k": "switch", "until": e["t"] + 8}
         if now_over and not was_over:
@@ -493,10 +494,7 @@ class App:
             return "No match in progress"
         g = m.game
         t = m.d["teams"]
-        if m.n_teams == 2:
-            lines = ["%s %s - %s %s" % (t[0]["name"], g.big(0), g.big(1), t[1]["name"])]
-        else:
-            lines = [", ".join("%s %s" % (t[i]["name"], g.big(i)) for i in range(m.n_teams))]
+        lines = ["%s %s - %s %s" % (t[0]["name"], g.big(0), g.big(1), t[1]["name"])]
         if g.mid(0) is not None:
             lines.append("Games %s-%s" % (g.mid(0), g.mid(1)))
         clock = g.clock(self.clock())
@@ -546,7 +544,7 @@ class App:
                     # Settings choice), "loss" a rally won by the other team. (GET works too, for simple
                     # button apps.)
                     g = self._need_match().game
-                    if self.match.n_teams != 2 or g.layout != "standard":
+                    if g.layout != "standard":
                         raise ApiError(400, "the remote needs a two-team rally game")
                     mine = 1 if self.meta.get("remote_team", 1) else 0
                     self._event({"k": "r", "tm": mine if what == "point" else 1 - mine})
@@ -557,7 +555,7 @@ class App:
                     if g.layout != "timed":
                         raise ApiError(400, "no game clock in this sport")
                     self._event({"k": "cp" if g.running else "cs"})
-                elif bits[0] in "abcdef" and len(bits[0]) == 1:
+                elif bits[0] in ("a", "b"):
                     # /api/w/a scores the first button's value; /api/w/a/3 scores 3
                     e = {"k": "r", "tm": self._team({"team": bits[0]})}
                     g = self._need_match().game
@@ -593,9 +591,6 @@ class App:
                 if action == "set":
                     e["secs"] = float(body.get("secs", 0))
                 self._event(e)
-            elif path == "/api/finish":
-                g = self._need_match().game
-                self._event({"k": "cend" if g.layout == "timed" else "fin"})
             elif path == "/api/undo":
                 self._event({"k": "u"})
             elif path == "/api/positions":
@@ -628,11 +623,11 @@ class App:
                     self._save_meta()
                     self._settings_changed()
                 if "colors" in body:
-                    # Team colours: a list of up to 6 palette colours ("RRGGBB"), or null for red/blue/...
+                    # Team colours: a list of up to 2 palette colours ("RRGGBB"), or null for red and blue
                     picked = body["colors"]
                     if picked is None:
                         self.meta.pop("colors", None)
-                    elif isinstance(picked, list) and len(picked) <= 6 and all(colors.valid(p) for p in picked):
+                    elif isinstance(picked, list) and len(picked) <= 2 and all(colors.valid(p) for p in picked):
                         self.meta["colors"] = colors.effective(picked)
                     else:
                         raise ApiError(400, "team colours must come from the palette")

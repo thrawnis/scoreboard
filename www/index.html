@@ -13,8 +13,7 @@
 :root {
   --bg: #f3f4f6; --card: #ffffff; --ink: #111827; --muted: #6b7280; --line: #e5e7eb;
   --a: #e2461d; --a-soft: #fde5dd; --b: #1b74d8; --b-soft: #dcebfc;
-  --c2: #16a34a; --c3: #ca8a04; --c4: #c026d3; --c5: #0891b2;  /* teams 3-6; all team colours are set from the board's choice */
-  --on0: #fff; --on1: #fff; --on2: #fff; --on3: #fff; --on4: #fff; --on5: #fff;  /* text on a team colour */
+  --on0: #fff; --on1: #fff;  /* text on a team colour (both colours are set from the board's choice) */
   --serve: #22c55e; --serve-ink: #052e12; --warn: #b45309; --warn-soft: #fef3c7;
   --danger: #b91c1c; --btn: #e5e7eb; --btn-ink: #111827;
 }
@@ -134,13 +133,7 @@ ol.steps li { margin-bottom: 8px; }
 .clock.stopped { color: var(--warn); } .clock.low { color: var(--danger); }
 .clockbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .clockbtns .go { grid-column: 1 / -1; min-height: 60px; font-size: 20px; font-weight: 800; }
-.mrow { display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 14px; padding: 10px 12px; margin-bottom: 8px; border-left: 6px solid var(--c); }
-.mrow .mn { flex: 1; font-weight: 700; color: var(--c); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mrow .ms { font-size: 40px; font-weight: 800; min-width: 64px; text-align: center; }
-.mrow button { width: 56px; height: 56px; font-size: 28px; font-weight: 800; padding: 0; }
-.mrow button.plus { background: var(--c); color: var(--on, #fff); }
-.c0 { --c: var(--a); --on: var(--on0); } .c1 { --c: var(--b); --on: var(--on1); } .c2 { --c: var(--c2); --on: var(--on2); }
-.c3 { --c: var(--c3); --on: var(--on3); } .c4 { --c: var(--c4); --on: var(--on4); } .c5 { --c: var(--c5); --on: var(--on5); }
+.c0 { --c: var(--a); --on: var(--on0); } .c1 { --c: var(--b); --on: var(--on1); }
 /* remembered player names in the new-match form */
 .rosterwrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .rname { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 999px; background: var(--card); overflow: hidden; }
@@ -219,7 +212,6 @@ ol.steps li { margin-bottom: 8px; }
         <button class="undo" data-act="undo" id="undo">Undo<small id="undo-l">Nothing to undo</small></button>
         <button data-act="adjust">Correct score</button>
         <button data-act="newmatch">New match</button>
-        <button data-act="finish" id="finish" hidden>Finish game</button>
       </div>
     </div>
   </section>
@@ -415,19 +407,15 @@ const SPORTS = {
       {k: "buttons", label: "Score buttons, e.g. 1,2,3", text: true, only: "custom"}],
     desc: c => (TIMED[c.preset] || TIMED.custom).name + ", " + c.periods + " × " + c.minutes + " min",
   },
-  misc: {
-    name: "Misc", emoji: "🔢", unit: "Game", verb: "scored",
-    defaults: {teams: 2},
-    fields: [{k: "teams", label: "Number of teams", choices: [[2, "2"], [3, "3"], [4, "4"], [5, "5"], [6, "6"]]}],
-    desc: c => c.teams + " teams, scored by hand",
-  },
 };
-const LETTERS = "ABCDEF";
-const playersFor = cfg => cfg.sport === "timed" || cfg.sport === "misc" ? 0 : cfg.sport === "volleyball" ? (cfg.variant === "beach" ? 2 : 0) : (cfg.mode === "doubles" ? 2 : 1);
-const teamCount = cfg => cfg.sport === "misc" ? (cfg.teams || 2) : 2;
+// History can hold games from sports since removed (the 2-6 team scorer): show them generically.
+const OTHER_SPORT = {name: "Other", emoji: "🔢", unit: "Game", verb: "scored", fields: [], desc: () => ""};
+const LETTERS = "AB";
+const playersFor = cfg => cfg.sport === "timed" ? 0 : cfg.sport === "volleyball" ? (cfg.variant === "beach" ? 2 : 0) : (cfg.mode === "doubles" ? 2 : 1);
+const teamCount = cfg => 2;
 const emojiOf = cfg => cfg && cfg.sport === "timed" ? (TIMED[cfg.preset] || TIMED.custom).emoji : sportOf(cfg).emoji;
 const nameOf = cfg => cfg && cfg.sport === "timed" ? (TIMED[cfg.preset] || TIMED.custom).name : sportOf(cfg).name;
-const sportOf = cfg => SPORTS[(cfg && cfg.sport) || "pickleball"] || SPORTS.pickleball;
+const sportOf = cfg => SPORTS[(cfg && cfg.sport) || "pickleball"] || OTHER_SPORT;
 const describeCfg = cfg => (cfg.mode ? (cfg.mode === "doubles" ? "Doubles" : "Singles") + ", " : "") + sportOf(cfg).desc(cfg);
 
 /* ---------------------------------------------------------------- state */
@@ -513,7 +501,7 @@ const COLOR_PALETTE = [["Red", "FF3000"], ["Orange", "FF7000"], ["Yellow", "FFD0
 function applyColors(list) {
   if (!Array.isArray(list)) return;
   const root = document.documentElement.style;
-  const names = ["--a", "--b", "--c2", "--c3", "--c4", "--c5"];
+  const names = ["--a", "--b"];
   list.forEach((hex, i) => {
     const r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
     root.setProperty(names[i], "#" + hex);
@@ -528,8 +516,7 @@ function renderColorPicker() {
   const rows = t => '<div class="swrow"><span>Team ' + LETTERS[t] + '</span>' + COLOR_PALETTE.map(([name, hex]) =>
     '<button type="button" class="sw' + (cur[t] === hex ? " on" : "") + '" style="--sw:#' + hex + '" data-t="' + t +
     '" data-hex="' + hex + '" aria-label="Team ' + LETTERS[t] + ' ' + name + '" title="' + name + '"></button>').join("") + '</div>';
-  $("#color-rows").innerHTML = rows(0) + rows(1) +
-    '<details><summary class="small">More teams (3–6 team games)</summary>' + [2, 3, 4, 5].map(rows).join("") + '</details>';
+  $("#color-rows").innerHTML = rows(0) + rows(1);
 }
 
 function setState(st) {
@@ -624,18 +611,6 @@ function render() {
     $("#clock-next").hidden = k.last_period;
     $("#clock-ot").hidden = !k.tied;
   }
-  $("#finish").hidden = g.layout !== "multi" || g.over;
-
-  if (g.layout === "multi") {
-    $("#teams").className = "";
-    $("#teams").innerHTML = T.map((tm, t) =>
-      '<div class="mrow c' + t + '"><span class="mn">' + esc(tm.name) + '</span>' +
-      '<button data-act="pts" data-team="' + t + '" data-n="-1"' + (g.over ? ' data-off="1"' : "") + '>−</button>' +
-      '<span class="ms num">' + esc(g.big[t]) + '</span>' +
-      '<button class="plus" data-act="pts" data-team="' + t + '" data-n="1"' + (g.over ? ' data-off="1"' : "") + '>+</button></div>').join("");
-    finishRender(g);
-    return;
-  }
   $("#teams").className = "teams";
 
   // team cards
@@ -726,7 +701,7 @@ function defaultForm() {
   return {cfg, teams: blankTeams(), first: 0};
 }
 
-function blankTeams() { return Array.from({length: 6}, () => ({name: "", players: ["", ""]})); }
+function blankTeams() { return Array.from({length: 2}, () => ({name: "", players: ["", ""]})); }
 
 // Names used before, most recent first: remembered on this phone, then the match and history.
 function recentNames(kind) {
@@ -833,7 +808,7 @@ function renderMatchForm() {
     return '<div class="teamform c' + t + '" style="border-left-color:var(--c)"><div class="field"><label>Team ' + LETTERS[t] + ' name</label><input type="text" list="dl-names" maxlength="16" placeholder="Team ' + LETTERS[t] + '" data-tname="' + t + '" value="' + esc(tm.name) + '"></div>' +
       '<div class="grid2">' + players.map(i => '<div class="field"><label>' + hint(i) + ' name <span class="small">(1–5 letters)</span></label><input type="text" list="dl-players" minlength="1" maxlength="5" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="e.g. MIKE" data-pl="' + t + "," + i + '" value="' + esc(tm.players[i] || "") + '"></div>').join("") + "</div></div>";
   }).join("");
-  $("#mf-first").parentElement.hidden = c.sport === "timed" || c.sport === "misc";
+  $("#mf-first").parentElement.hidden = c.sport === "timed";
   $("#mf-first").innerHTML = [0, 1].map(t => '<button data-first="' + t + '" class="' + (form.first === t ? "on" : "") + '">' + esc(form.teams[t].name || "Team " + "AB"[t]) + "</button>").join("");
   renderRoster();  // greys out the names already on a team
 }
@@ -1002,7 +977,7 @@ async function openGame(id) {
   let html = '<p class="small muted" style="margin-top:0">' + emojiOf(rec.cfg) + " " + esc(nameOf(rec.cfg)) + " · " + esc(fmtDate(rec.start)) + " · " + sp.unit + " " + rec.n + " · " + fmtDur(rec.end - rec.start) +
     "<br>" + players + "<br>" + esc(describeCfg(rec.cfg)) +
     (rec.status === "abandoned" ? "<br><b>Abandoned before the end</b>" : rec.winner !== null ? "<br><b>" + esc(T[rec.winner].name) + " won</b>" : "<br><b>Tie</b>") + "</p>";
-  const serving = rec.cfg.sport === "timed" || rec.cfg.sport === "misc" ? "" : ", " + esc(T[rec.first_serving].name) + " serving";
+  const serving = rec.cfg.sport === "timed" || rec.cfg.sport === "misc" /* old records */ ? "" : ", " + esc(T[rec.first_serving].name) + " serving";
   html += '<table class="log"><tbody><tr><td>' + fmtTime(rec.start) + "</td><td>" + sp.unit + " started" + serving + "</td><td></td></tr>";
   for (const e of rec.events) {
     let what;
@@ -1128,9 +1103,6 @@ document.addEventListener("click", async e => {
       if (isNaN(secs)) return toast("Use minutes:seconds, e.g. 4:30");
       return act("/api/clock", {action: "set", secs}, false);
     }
-    case "finish":
-      if (!confirm("Finish this game and save it to history?")) return;
-      return act("/api/finish");
     case "undo": return act("/api/undo");
     case "nextgame": return act("/api/next_game");
     case "pos": {
