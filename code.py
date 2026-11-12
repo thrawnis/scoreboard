@@ -171,6 +171,11 @@ def net_info():
 
 # ---------------------------------------------------------------- app
 
+import gc  # noqa: E402
+
+# RAM is tight: free what the display set-up left behind before compiling the large scoring modules
+# (this import is where start-up once ran out of memory).
+gc.collect()
 from scoreapp import App  # noqa: E402  (after the start-up screen is up)
 
 
