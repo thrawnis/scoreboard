@@ -29,11 +29,15 @@ def _exists(path):
 
 
 def _read_json(path, default=None):
-    try:
-        with open(path) as f:
-            return json.loads(f.read())
-    except (OSError, ValueError):
-        return default
+    # _write_json removes the old file before renaming the new one into place (FAT can't rename over a
+    # file). If the power went in between, only the .tmp copy is left, and it is complete: use it.
+    for p in (path, path + ".tmp"):
+        try:
+            with open(p) as f:
+                return json.loads(f.read())
+        except (OSError, ValueError):
+            pass
+    return default
 
 
 def _write_json(path, obj):
@@ -91,6 +95,10 @@ class App:
         self.roster = _read_json(self._p("roster.json"), None)
         if not isinstance(self.roster, list):
             self.roster = self._seed_roster()
+        # Never hand out an id that's already used, even if meta.json was lost: a new game would
+        # otherwise overwrite an old one in the history.
+        used = [s["id"] for s in self.index] + ([self.match.d["id"], self.match.d["cur"]["id"]] if self.match else [])
+        self.meta["next_id"] = max([self.meta.get("next_id", 1)] + [i + 1 for i in used])
         self._save_meta()
 
     # ---------------------------------------------------------------- storage
