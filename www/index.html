@@ -238,8 +238,6 @@ ol.steps li { margin-bottom: 8px; }
     <div class="card">
       <div class="field"><label for="bright">Board brightness <span id="bright-v" class="num"></span></label>
         <input type="range" id="bright" min="5" max="100" step="5"></div>
-      <div class="field"><span class="lbl2">Board size (the board restarts to apply it)</span>
-        <div class="seg" id="panels"><button data-v="1" disabled title="Disabled for now" style="opacity:.4;cursor:not-allowed">1 panel · 64×32 (disabled)</button><button data-v="2">2 panels stacked · 64×64</button></div></div>
       <div class="field" id="colors-row"><span class="lbl2">Team colours (shown on the board and here)</span>
         <div id="color-rows"></div>
         <button type="button" id="colors-reset" class="small" style="margin-top:6px">Reset to red and blue</button></div>
@@ -1042,13 +1040,10 @@ async function loadSettings() {
   $("#speak").checked = store("speak") === "1";
   if (S) {
     $("#bright").value = S.brightness; $("#bright-v").textContent = S.brightness + "%";
-    $$("#panels button").forEach(b => b.classList.toggle("on", +b.dataset.v === (S.panels || 2)));
     $("#anims").checked = S.animations !== false;
     renderColorPicker();
     $("#flip").checked = S.serpentine !== false;
     $$("#remote-team button").forEach(b => b.classList.toggle("on", +b.dataset.v === (S.remote_team === 0 ? 0 : 1)));
-    $("#flip-row").hidden = S.panels === 1;
-    $("#court-row").hidden = S.panels === 1;
     $$("#court button").forEach(b => b.classList.toggle("on", b.dataset.v === (S.court || "over")));
   }
   const base = location.origin;
@@ -1101,14 +1096,6 @@ $("#flip").addEventListener("change", async e => {
   if (st) toast("Restarting the board… reconnect in about 20 seconds.");
 });
 $("#speak").addEventListener("change", e => { store("speak", e.target.checked ? "1" : "0"); if (e.target.checked && "speechSynthesis" in window) speechSynthesis.speak(new SpeechSynthesisUtterance("Score announcements on")); });
-$("#panels").addEventListener("click", async e => {
-  const b = e.target.closest("button");
-  if (!b || +b.dataset.v === (S && S.panels || 2)) return;
-  const n = +b.dataset.v;
-  if (!confirm("Switch the board to " + (n === 1 ? "one panel (64×32)" : "two stacked panels (64×64)") + "? It restarts to apply this; the current game is kept.")) return;
-  const st = await act("/api/settings", {panels: n}, false);
-  if (st) { $$("#panels button").forEach(x => x.classList.toggle("on", x === b)); toast("Restarting the board… reconnect in about 20 seconds."); }
-});
 
 /* ---------------------------------------------------------------- navigation & actions */
 

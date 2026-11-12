@@ -19,8 +19,6 @@ on the bottom screen and the next 32 (team B) on the top. The layouts are drawn 
 swap the panels, the layouts need to change with them. The second panel in the chain is mounted upside-down
 (the "serpentine" setting; toggle it in Settings or with `flip` if the lower half looks flipped).
 
-Single-screen (64x32) mode still exists in the code but is switched off for now.
-
 ## What is on the board
 
 Top to bottom as you see it: the score call, team B's court (blue), team A's court (red), then the idle timer.
@@ -73,7 +71,7 @@ computer. To copy files over:
 ## Serial console (`/dev/ttyACM0`, 115200)
 
 `help`, `status`, `a` / `b` (team A / B won the rally), `point` / `loss` (the remote's team / the other
-team), `u` (undo), `api METHOD PATH [JSON]`, `snap` (dump the frame buffer), `panels 2`, `flip`,
+team), `u` (undo), `api METHOD PATH [JSON]`, `snap` (dump the frame buffer), `flip`,
 `fill COLOR [secs]` (solid colour on both screens, for checking brightness), `devmode`, `reboot`.
 On Linux you need to be in the `uucp` group to open the port.
 

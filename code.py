@@ -54,56 +54,28 @@ def _meta():
         return {}
 
 
-# Two chained 64x32 panels stacked into one 64x64 board. (One-panel mode is still in the code but
-# switched off.) The Pico's cable goes to the bottom screen, so the frame buffer's first half shows
-# there: see panel.py for how the layouts allow for that.
-_m = _meta()
-STACK = True  # single-screen mode is disabled for now; to bring it back: _m.get("panels") != 1
-# Serpentine: the bottom panel is mounted upside-down (short cable from the top panel's
-# output to its input). Turn off if both panels are upright (Settings, or serial `flip`).
-SERPENTINE = _m.get("serpentine", True)
-
-WIDTH = 64  # layout width
-HEIGHT = 64 if STACK else 32
-# One-panel mode always drives the full 128-pixel chain: the 64-wide layout is drawn on
-# the left half and copied to the right half, so a second panel left connected
-# shows the same picture (sending only 64 pixels made it show stale colors).
-CHAIN = 128
-MIRROR = not STACK
+# Two chained 64x32 panels stacked into one 64x64 board. The Pico's cable goes to the bottom
+# screen, so the frame buffer's first half shows there: see panel.py for how the layouts allow for that.
+# Serpentine: the second panel in the chain is mounted upside-down (short cable between the panels).
+# Turn off if both panels are upright (Settings, or serial `flip`).
+SERPENTINE = _meta().get("serpentine", True)
+WIDTH = HEIGHT = 64
 
 displayio.release_displays()
 # Don't pass framebuffer= here: on CircuitPython 9.2.4 / RP2350 it hard-faults
 # into safe mode. The matrix's own buffer is readable via memoryview instead.
-if STACK:
-    matrix = rgbmatrix.RGBMatrix(width=64, height=64, tile=2, serpentine=SERPENTINE, bit_depth=5,
-                                 doublebuffer=True, **PINOUTS[PINOUT])
-else:
-    matrix = rgbmatrix.RGBMatrix(width=CHAIN, height=32, bit_depth=5, doublebuffer=True, **PINOUTS[PINOUT])
+matrix = rgbmatrix.RGBMatrix(width=WIDTH, height=HEIGHT, tile=2, serpentine=SERPENTINE, bit_depth=5,
+                             doublebuffer=True, **PINOUTS[PINOUT])
 framebuffer = memoryview(matrix)
-display = framebufferio.FramebufferDisplay(matrix, auto_refresh=not MIRROR)
-mirror_due = 0.0
-
-
-def mirror_refresh():
-    """One-panel mode: draw, copy the left 64 columns onto the right 64, show."""
-    global mirror_due
-    now = time.monotonic()
-    if now < mirror_due:
-        return
-    mirror_due = now + 0.025  # ~40 frames a second
-    display.refresh(minimum_frames_per_second=0)
-    for y in range(32):
-        row = y * CHAIN
-        framebuffer[row + WIDTH : row + CHAIN] = framebuffer[row : row + WIDTH]
-    matrix.refresh()
+display = framebufferio.FramebufferDisplay(matrix, auto_refresh=True)
 try:
     supervisor.status_bar.console = False
     supervisor.status_bar.display = False
 except AttributeError:
     pass
 
-panel = make_panel(display, STACK)
-panel.message("STARTING" if STACK else "START", small="WI-FI...", top_color=0xFFFFFF)
+panel = make_panel(display)
+panel.message("STARTING", small="WI-FI...", top_color=0xFFFFFF)
 
 # ---------------------------------------------------------------- storage
 
@@ -219,7 +191,6 @@ HELP = """Commands:
   u                    undo
   api METHOD PATH [JSON]   call the web API, e.g. api GET /api/state
   snap                 dump the frame buffer (RGB565 hex rows)
-  panels 2             two stacked 64x32 panels (one-panel mode is switched off for now)
   fill COLOR [secs]    solid colour on both screens (white|red|green|blue|yellow|RRGGBB), default 15 s
   flip                 toggle the bottom panel's mounting: upside-down / upright (restarts)
   devmode             restart with CIRCUITPY writable over USB (history not saved)
@@ -263,21 +234,13 @@ def serial_command(line):
         code, _, body = app.handle(bits[0].upper(), bits[1], {}, bits[2] if len(bits) > 2 else "")
         return "%d %s" % (code, body)
     if cmd == "snap":
-        w = WIDTH if STACK else CHAIN
-        print("SNAP %d %d" % (w, HEIGHT))
+        print("SNAP %d %d" % (WIDTH, HEIGHT))
         for y in range(HEIGHT):
-            print(bytes(framebuffer[y * w : (y + 1) * w]).hex())
+            print(bytes(framebuffer[y * WIDTH : (y + 1) * WIDTH]).hex())
         return "END"
     if cmd == "flip":
         code, _, body = app.handle("POST", "/api/settings", {}, '{"serpentine": %s}' % ("false" if SERPENTINE else "true"))
         return "OK bottom panel %s, restarting" % ("upright" if SERPENTINE else "upside-down") if code == 200 else body
-    if cmd == "panels":
-        if arg.strip() == "1":
-            return "single-screen mode is disabled for now; the board runs as two stacked screens"
-        if arg.strip() != "2":
-            return "usage: panels 2  (single-screen mode is disabled for now)"
-        code, _, body = app.handle("POST", "/api/settings", {}, '{"panels": %s}' % arg.strip())
-        return "OK panels=%s, restarting" % arg.strip() if code == 200 else body
     if cmd == "devmode":
         app.flush()
         with open("/devmode", "w") as f:
@@ -350,7 +313,5 @@ while True:
     try:
         app.tick()
         panel.update(app, net)
-        if MIRROR:
-            mirror_refresh()
     except Exception as err:
         report("display", err)

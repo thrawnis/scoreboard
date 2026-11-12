@@ -423,7 +423,6 @@ class App:
             "synced": self.synced,
             "storage": self.writable,
             "brightness": self.meta.get("brightness", 100),
-            "panels": 2,  # single-screen mode is disabled for now (code.py always runs the stacked board)
             "serpentine": self.meta.get("serpentine", True),
             "court": self.meta.get("court", "over"),
             "colors": colors.effective(self.meta.get("colors")),
@@ -624,14 +623,6 @@ class App:
                     self.meta["animations"] = bool(body["animations"])
                     self._save_meta()
                     self._settings_changed()
-                if body.get("panels") == 1:
-                    raise ApiError(400, "single-screen mode is disabled for now; the board runs as two stacked screens")
-                if body.get("panels") == 2 and body["panels"] != self.meta.get("panels", 2):
-                    # The matrix size is fixed at start-up, so restart once the reply is sent.
-                    self.meta["panels"] = body["panels"]
-                    self._save_meta()
-                    self._settings_changed()
-                    self.reboot_due = time.monotonic() + 1.5
                 if body.get("remote_team") in (0, 1, "a", "b", "A", "B"):
                     self.meta["remote_team"] = 1 if body["remote_team"] in (1, "b", "B") else 0
                     self._save_meta()
