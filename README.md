@@ -29,7 +29,9 @@ Top to bottom as you see it: the score call, team B's court (blue), team A's cou
   the other players stand toward the net. The call is `serving score - receiving score - server number`,
   with the digits in the team colours. Left/right can be set in Settings.
 - Other sports use the standard stacked layout or the timed-game layout.
-- Scoring animations play on the scorer's half. Player names are 1-5 characters.
+- A short scoring animation plays on the scorer's half (the same for every sport): a frame in the team's
+  colour grows from the middle, then the caption ("+1", "GAME", "MATCH"...), flashing for a game or match.
+  Player names are 1-5 characters.
 - **Start screen** (no match running): the Wi-Fi name, the password masked after its first character, and
   the IP address, in the smallest font (4x6), so you can join without opening anything.
 
@@ -42,7 +44,7 @@ and timed games (basketball, soccer, hockey, football, custom). Every sport is t
 | --- | --- |
 | `code.py` | Starts the display, Wi-Fi and web server; main loop; serial console |
 | `panel.py` | All LED layouts (court view, standard, timed) |
-| `anim.py`, `icons.py` | Scoring animations and the 8x8 sport icons |
+| `anim.py`, `icons.py` | The scoring animation and the 8x8 sport icons (start-of-match splash) |
 | `sports.py` | The rules and scoring for every sport |
 | `scoreapp.py` | Match state, saving, and the HTTP API |
 | `www/index.html` | The web app |

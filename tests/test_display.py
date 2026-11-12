@@ -95,6 +95,37 @@ class Screens(unittest.TestCase):
         self.assertIs(self.shown(), self.panel.court_group)
         self.assertEqual("".join(lbl.text for lbl in self.panel.c_call).strip(), "1-0-2")
 
+    def test_point_animation_plays_on_the_scorers_half(self):
+        self.start({"sport": "pickleball", "mode": "doubles"})
+        self.api("/api/rally", {"team": 0})
+        self.run_for(0.75)  # the animation starts on the first update; its caption appears at 30% of 1.2 s
+        a = self.panel.anim
+        self.assertEqual(a.group.y, self.panel.OY[0])  # team A's half of the frame buffer
+        self.assertFalse(a.backdrop.hidden)
+        self.assertEqual(a.caption.text, "+1")
+        self.assertFalse(a.caption.hidden)
+        visible = [k for k, edges in enumerate(a.frames) if not edges[0].hidden]
+        self.assertEqual(len(visible), 1)  # one frame at a time, growing
+        self.assertEqual(a.duration, 1.2)
+
+    def test_match_win_animation_flashes_and_lasts_longer(self):
+        self.start({"sport": "pickleball", "mode": "singles"}, players=(("AL",), ("CY",)))
+        for _ in range(11):  # team A serves and wins every rally: 11-0
+            self.api("/api/rally", {"team": 0})
+        self.clock.t += 0.25
+        self.panel.update(self.app, NET)
+        a = self.panel.anim
+        self.assertTrue(a.active)
+        self.assertEqual(a.caption.text, "MATCH")
+        self.assertEqual(a.duration, 2.4)
+        colours = set()
+        for _ in range(16):
+            self.clock.t += 0.1
+            self.panel.update(self.app, NET)
+            if not a.caption.hidden:
+                colours.add(a.caption.color)
+        self.assertEqual(len(colours), 2)  # flashes between the team colour and white
+
     def test_switch_ends_message(self):
         self.start({"sport": "pickleball", "mode": "singles"}, players=(("AL",), ("CY",)))
         for _ in range(6):  # 6-0: half way to 11 in the only game

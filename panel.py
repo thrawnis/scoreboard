@@ -272,9 +272,8 @@ class _Panel:
             self.celebrated = c["n"]
             if app.meta.get("animations", True) and app.match:
                 t = c["tm"]
-                other = TEAM_COLORS[1 - t]
-                cx, cy, oy, cover = self._anim_area(t)
-                self.anim.start(c["sport"], t, c["text"], c["level"], TEAM_COLORS[t], other, self.pct, cx, cy, oy, cover)
+                # on the scorer's half, over a black backdrop (the other half keeps showing the score)
+                self.anim.start(t, c["text"], c["level"], TEAM_COLORS[t], self.pct, self.OY[t], True)
         if self.anim.active:
             if self.anim.step():
                 self._show(self.anim.group)
@@ -395,9 +394,6 @@ class StackPanel(_Panel):
 
     def _is_shown(self, group):
         return self._shown is group
-
-    def _anim_area(self, t):
-        return None, None, self.OY[t], True  # the scorer's half
 
     # ---------------------------------------------------------------- start-up
 

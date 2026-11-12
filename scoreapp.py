@@ -362,10 +362,7 @@ class App:
             else:
                 text = {"game": "GAME", "unit": g.unit, "match": "MATCH"}[level]
             n = self.celebrate["n"] + 1 if self.celebrate else 1
-            sport = m.sport
-            if sport == "timed":
-                sport = "timed_" + m.d["cfg"].get("preset", "custom")
-            self.celebrate = {"n": n, "tm": g.scored, "level": level, "text": text, "sport": sport}
+            self.celebrate = {"n": n, "tm": g.scored, "level": level, "text": text}
         if m.game.switch_now:
             self.alert = {"k": "switch", "until": e["t"] + 8}
         if now_over and not was_over:
