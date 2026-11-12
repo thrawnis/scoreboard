@@ -8,3 +8,6 @@ boot_out.txt
 # may hold Wi-Fi passwords / API keys (never commit these)
 settings.toml
 wifi.json
+# the board's runtime state (current match, history with player names, settings, remembered names):
+# written by the board itself, private, and copying it back would overwrite the board's real state
+data/
