@@ -107,7 +107,10 @@ The scoring rules, the app, the API and the storage are plain Python, so they're
 python3 -m unittest discover -s tests
 ```
 
-The display code needs the board and isn't covered. `tests/` isn't copied to the Pico.
+`tests/test_display.py` also runs the real display code (`panel.py`, `anim.py`) against stand-in display
+libraries in `tests/fakes/`, through the start screen, the court view, an animation, switching ends and the
+other layouts. That catches crashes and wrong text, not what the LEDs look like (use `snap` on the board).
+`tests/` isn't copied to the Pico.
 
 ## Troubleshooting
 
