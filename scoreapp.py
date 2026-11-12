@@ -244,6 +244,11 @@ class App:
         else:
             self.save_due = time.monotonic() + SAVE_DELAY
 
+    def _settings_changed(self):
+        # A setting (already saved in meta.json) changed: phones and the board redraw from the new
+        # version. Unlike _changed() this doesn't rewrite the match file, which didn't change.
+        self.version += 1
+
     def flush(self):
         self.save_due = None
         if self.match:
@@ -613,23 +618,23 @@ class App:
                 if "brightness" in body:
                     self.meta["brightness"] = max(5, min(100, int(body["brightness"])))
                     self._save_meta()
-                    self._changed()
+                    self._settings_changed()
                 if "animations" in body:
                     self.meta["animations"] = bool(body["animations"])
                     self._save_meta()
-                    self._changed()
+                    self._settings_changed()
                 if body.get("panels") == 1:
                     raise ApiError(400, "single-screen mode is disabled for now; the board runs as two stacked screens")
                 if body.get("panels") == 2 and body["panels"] != self.meta.get("panels", 2):
                     # The matrix size is fixed at start-up, so restart once the reply is sent.
                     self.meta["panels"] = body["panels"]
                     self._save_meta()
-                    self._changed()
+                    self._settings_changed()
                     self.reboot_due = time.monotonic() + 1.5
                 if body.get("remote_team") in (0, 1, "a", "b", "A", "B"):
                     self.meta["remote_team"] = 1 if body["remote_team"] in (1, "b", "B") else 0
                     self._save_meta()
-                    self._changed()
+                    self._settings_changed()
                 if "colors" in body:
                     # Team colours: a list of up to 6 palette colours ("RRGGBB"), or null for red/blue/...
                     picked = body["colors"]
@@ -640,16 +645,16 @@ class App:
                     else:
                         raise ApiError(400, "team colours must come from the palette")
                     self._save_meta()
-                    self._changed()
+                    self._settings_changed()
                 if body.get("court") in ("over", "mirror", "same"):
                     self.meta["court"] = body["court"]  # court diagram orientation; applies at once
                     self._save_meta()
-                    self._changed()
+                    self._settings_changed()
                 if "serpentine" in body and bool(body["serpentine"]) != self.meta.get("serpentine", True):
                     # Is the bottom panel of the stacked board mounted upside-down? Also applied at start-up.
                     self.meta["serpentine"] = bool(body["serpentine"])
                     self._save_meta()
-                    self._changed()
+                    self._settings_changed()
                     self.reboot_due = time.monotonic() + 1.5
             elif path == "/api/wifi":
                 ssid = str(body.get("ssid", "")).strip()
