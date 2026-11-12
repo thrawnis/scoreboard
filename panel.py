@@ -160,6 +160,12 @@ class _Panel:
         (group if group is not None else self.score_group).append(lbl)
         return lbl
 
+    def _drop_labels(self, labels):
+        """Stop tracking the labels of a layout that's being replaced (they'd stay in memory otherwise).
+        Labels are unhashable, so compare by identity."""
+        gone = [lbl for lbl in labels if lbl is not None]
+        self._labels = [lbl for lbl in self._labels if not any(lbl is g for g in gone)]
+
     def _rect(self, x, y, w, h, group=None):
         pal = displayio.Palette(1)
         rect = vectorio.Rectangle(pixel_shader=pal, width=w, height=h, x=x, y=y)
@@ -479,6 +485,8 @@ class CompactPanel(_Panel):
     # ---------------------------------------------------------------- misc: 2-6 teams
 
     def _build_multi(self, n):
+        if self.multi_group is not None:  # rebuilt for a new team count: let the old layout be freed
+            self._drop_labels(self.m_names + self.m_big + self.m_mid)
         g = displayio.Group()
         col = self.W // n
         self.m_names, self.m_big, self.m_mid = [], [], []
@@ -885,6 +893,8 @@ class StackPanel(_Panel):
         return [((i % cols) * cw, (i // cols) * ch, cw, ch) for i in range(n)]
 
     def _build_multi(self, n):
+        if self.multi_group is not None:  # rebuilt for a new team count: let the old layout be freed
+            self._drop_labels(self.m_names + self.m_big + self.m_mid)
         g = displayio.Group()
         cells = self._cells(n)
         self.m_names, self.m_big, self.m_mid = [], [], []
