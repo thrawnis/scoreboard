@@ -110,6 +110,8 @@ python3 -m unittest discover -s tests
 `tests/test_display.py` also runs the real display code (`panel.py`, `anim.py`) against stand-in display
 libraries in `tests/fakes/`, through the start screen, the court view, an animation, switching ends and the
 other layouts. That catches crashes and wrong text, not what the LEDs look like (use `snap` on the board).
+`tests/test_webapp.py` syntax-checks the web app's JavaScript if the `quickjs` package is installed
+(`python3 -m pip install quickjs`, in a virtual environment); otherwise it is skipped.
 `tests/` isn't copied to the Pico.
 
 ## Troubleshooting
