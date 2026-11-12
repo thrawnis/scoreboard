@@ -300,12 +300,25 @@ if DEV_MODE:
     print("DEV MODE: CIRCUITPY is writable over USB; games are not saved.")
 
 line = ""
+last_error = 0.0
+
+
+def report(where, err):
+    """Log an error from the main loop, at most every 5 seconds (it may repeat on every pass)."""
+    global last_error
+    if time.monotonic() - last_error > 5:
+        last_error = time.monotonic()
+        print("%s error: %s %s" % (where, type(err).__name__, err))
+
+
 while True:
+    # Nothing that goes wrong in one pass may stop the loop: the scoreboard would freeze until reset.
+    # (Ctrl-C is a KeyboardInterrupt, not an Exception, so it still stops the program.)
     if server is not None:
         try:
             server.poll()
-        except (OSError, RuntimeError, ValueError) as err:
-            print("http error:", err)
+        except Exception as err:
+            report("http", err)
 
     n = supervisor.runtime.serial_bytes_available
     if n:
@@ -328,7 +341,10 @@ while True:
                 line += ch
                 sys.stdout.write(ch)
 
-    app.tick()
-    panel.update(app, net)
-    if MIRROR:
-        mirror_refresh()
+    try:
+        app.tick()
+        panel.update(app, net)
+        if MIRROR:
+            mirror_refresh()
+    except Exception as err:
+        report("display", err)

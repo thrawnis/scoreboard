@@ -514,6 +514,10 @@ class App:
             return 200, ctype, payload
         except ApiError as err:
             return err.code, "application/json", json.dumps({"error": err.message, "state": self.state()})
+        except (TypeError, ValueError, KeyError, IndexError, AttributeError) as err:
+            # A well-formed request with a malformed value (e.g. {"brightness": null}): refuse it. Letting
+            # it escape would stop code.py's main loop, and with it the whole scoreboard.
+            return 400, "application/json", json.dumps({"error": "bad request (%s)" % err, "state": self.state()})
 
     def _route(self, method, path, body):
         js = "application/json"
