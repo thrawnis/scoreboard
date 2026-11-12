@@ -1,11 +1,12 @@
 # Scoreboard application: match state, game history storage and the HTTP API.
-# Platform independent: code.py (CircuitPython) and devserver.py (CPython) wrap it.
+# Platform independent: code.py runs it on CircuitPython, and the tests in tests/ run it on CPython.
 #
 # Files under data_dir:
 #   current.json      match in progress (Match.d)
 #   index.json        summaries of saved games, newest first
 #   games/g<id>.json  full game record with its change history
 #   meta.json         id counter and board settings
+#   roster.json       remembered player names, most recently used first
 #   wifi.json         Wi-Fi network to join
 
 import json

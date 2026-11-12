@@ -54,8 +54,9 @@ def _meta():
         return {}
 
 
-# 1 or 2 chained 64x32 panels; chosen in the web app's Settings (or serial `panels N`).
-# Two panels are stacked into a 64x64 board (team A on the top panel, team B below).
+# Two chained 64x32 panels stacked into one 64x64 board. (One-panel mode is still in the code but
+# switched off.) The Pico's cable goes to the bottom screen, so the frame buffer's first half shows
+# there: see panel.py for how the layouts allow for that.
 _m = _meta()
 STACK = True  # single-screen mode is disabled for now; to bring it back: _m.get("panels") != 1
 # Serpentine: the bottom panel is mounted upside-down (short cable from the top panel's
@@ -218,7 +219,7 @@ HELP = """Commands:
   u                    undo
   api METHOD PATH [JSON]   call the web API, e.g. api GET /api/state
   snap                 dump the frame buffer (RGB565 hex rows)
-  panels 1|2           one 64x32 panel, or two stacked into 64x64 (restarts the board)
+  panels 2             two stacked 64x32 panels (one-panel mode is switched off for now)
   fill COLOR [secs]    solid colour on both screens (white|red|green|blue|yellow|RRGGBB), default 15 s
   flip                 toggle the bottom panel's mounting: upside-down / upright (restarts)
   devmode             restart with CIRCUITPY writable over USB (history not saved)
