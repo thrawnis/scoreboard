@@ -131,8 +131,8 @@ class App:
         for name in reversed(names):
             if not isinstance(name, str):
                 continue
-            name = name.strip()
-            if player_error(name) is not None or name.upper() in ("P1", "P2"):
+            name = name.strip().upper()  # names are shown and stored upper-case everywhere else
+            if player_error(name) is not None or name in ("P1", "P2"):
                 continue
             keep = [name] + [k for k in keep if k.upper() != name.upper()]
         keep = keep[:ROSTER_MAX]
@@ -374,9 +374,11 @@ class App:
         game_id = self._new_id()
         first = 1 if body.get("first_serving") in (1, "1", "b", "B") else 0
         self.match = Match.new(match_id, game_id, body.get("cfg"), body.get("teams"), first, self.clock())
-        self._remember([p for t in body.get("teams") or [] for p in (t.get("players") or [])])
         self.alert = None
         self._changed(save_now=True)
+        # From the match's cleaned teams (upper-case, placeholders like P1 already filled in), not the raw
+        # request: a malformed request can't break anything here, and the list matches what's on the board.
+        self._remember([p for t in self.match.d["teams"] for p in t["players"]])
 
     def end_match(self):
         self._abandon()
